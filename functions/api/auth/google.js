@@ -31,3 +31,4 @@ export async function onRequestGet(context) {
   const qs = new URLSearchParams(options).toString();
   return Response.redirect(`${rootUrl}?${qs}`, 302);
 }
+ 

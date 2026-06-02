@@ -5,3 +5,4 @@ pages_build_output_dir = "./build"
 binding = "DB"
 database_name = "cineverse-db"
 database_id = "a535b894-ecf6-412d-8aa4-6d697be578eb"
+ 

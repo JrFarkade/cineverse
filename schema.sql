@@ -72,3 +72,4 @@ CREATE TABLE IF NOT EXISTS activities (
   timestamp TEXT NOT NULL,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+ 

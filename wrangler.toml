@@ -1,0 +1,11 @@
+name = "cineverse"
+pages_build_output_dir = "./build"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cineverse-db"
+database_id = "local-db-id"
+
+[[r2_buckets]]
+binding = "AVATARS_BUCKET"
+bucket_name = "cineverse-avatars"

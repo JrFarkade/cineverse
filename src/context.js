@@ -1,32 +1,5 @@
 import React, { useContext, useState, useEffect } from "react";
 import useFetch from "./useFetch";
-import { auth, db, storage } from "./firebase";
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "firebase/auth";
-import { 
-  doc, 
-  setDoc, 
-  getDoc, 
-  getDocs, 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  limit, 
-  deleteDoc, 
-  updateDoc, 
-  addDoc,
-  arrayUnion,
-  arrayRemove,
-  onSnapshot
-} from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const AppContext = React.createContext();
 
@@ -37,9 +10,9 @@ export const AppProvider = ({ children }) => {
   const [watchlist, setWatchlist] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [allWatchlists, setAllWatchlists] = useState([]);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [activitiesList, setActivitiesList] = useState([]);
-  const [allWatchlists, setAllWatchlists] = useState([]);
 
   // Discovery Hub Caching States
   const [trendingMovies, setTrendingMovies] = useState([]);
@@ -52,428 +25,342 @@ export const AppProvider = ({ children }) => {
   const endpoint = queryVal.trim() ? `search/multi?query=${queryVal}` : "movie/popular";
   const { isLoading, isError, movie } = useFetch(endpoint);
 
-  // Load and listen to Auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setIsLoadingAuth(true);
-      if (user) {
-        setCurrentUser(user);
-        const docRef = doc(db, "users", user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const profileData = docSnap.data();
-          setUserProfile(profileData);
-          await updateDoc(docRef, { lastLoginAt: new Date().toISOString() });
+  // 1. Initial Authentication Restoration Check
+  const checkAuth = async () => {
+    setIsLoadingAuth(true);
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated) {
+          setCurrentUser({ uid: data.user.uid, email: data.user.email });
+          setUserProfile(data.user);
         } else {
-          // If the profile document is missing (e.g. created outside or first time Google login)
-          const baseUsername = user.displayName ? user.displayName.replace(/\s+/g, "") : user.email.split("@")[0];
-          // Check uniqueness
-          let uniqueUsername = baseUsername;
-          let count = 1;
-          let isUnique = false;
-          while (!isUnique) {
-            const q = query(collection(db, "users"), where("username", "==", uniqueUsername));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-              isUnique = true;
-            } else {
-              uniqueUsername = `${baseUsername}${count}`;
-              count++;
-            }
-          }
-
-          const profile = {
-            uid: user.uid,
-            username: uniqueUsername,
-            email: user.email || "",
-            avatar: user.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${uniqueUsername}`,
-            createdAt: new Date().toISOString().split("T")[0],
-            role: "user",
-            isSuspended: false,
-            lastLoginAt: new Date().toISOString()
-          };
-          await setDoc(docRef, profile);
-          setUserProfile(profile);
+          setCurrentUser(null);
+          setUserProfile(null);
         }
       } else {
         setCurrentUser(null);
         setUserProfile(null);
-        setWatchlist([]);
       }
-      setIsLoadingAuth(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Real-time Database Listeners (onSnapshot)
-  useEffect(() => {
-    if (!currentUser) {
-      setWatchlist([]);
-      return;
-    }
-    const q = query(collection(db, "watchlists"), where("userId", "==", currentUser.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.forEach((doc) => list.push(doc.data()));
-      setWatchlist(list);
-    });
-    return unsubscribe;
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const q = query(collection(db, "reviews"), orderBy("createdAt", "desc"), limit(100));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
-      setReviews(list);
-    });
-    return unsubscribe;
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const q = collection(db, "users");
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.forEach((doc) => list.push(doc.data()));
-      setUsersList(list);
-    });
-    return unsubscribe;
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const q = query(collection(db, "activities"), orderBy("timestamp", "desc"), limit(50));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.forEach((doc) => list.push({ id: doc.id, ...doc.data() }));
-      setActivitiesList(list);
-    });
-    return unsubscribe;
-  }, [currentUser]);
-
-  useEffect(() => {
-    if (!currentUser || userProfile?.role !== "admin") {
-      setAllWatchlists([]);
-      return;
-    }
-    const q = collection(db, "watchlists");
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = [];
-      snapshot.forEach((doc) => list.push(doc.data()));
-      setAllWatchlists(list);
-    });
-    return unsubscribe;
-  }, [currentUser, userProfile]);
-
-  // Social Activities Helper
-  const addSocialActivity = async (userId, description) => {
-    try {
-      const activity = {
-        userId,
-        username: userProfile?.username || "User",
-        avatar: userProfile?.avatar || "https://api.dicebear.com/7.x/adventurer/svg?seed=User",
-        description,
-        timestamp: new Date().toISOString()
-      };
-      await addDoc(collection(db, "activities"), activity);
     } catch (err) {
-      console.error("Activity logging failed:", err);
+      console.error("Auth check failed:", err);
+      setCurrentUser(null);
+      setUserProfile(null);
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
-  // Auth Operations
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  // 2. Fetch Handlers for Database Aggregates
+  const fetchWatchlist = async () => {
+    try {
+      const res = await fetch("/api/watchlist");
+      if (res.ok) {
+        const data = await res.json();
+        setWatchlist(data);
+      }
+    } catch (err) {
+      console.error("Error fetching watchlist:", err);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      const res = await fetch("/api/reviews");
+      if (res.ok) {
+        const data = await res.json();
+        setReviews(data);
+      }
+    } catch (err) {
+      console.error("Error fetching reviews:", err);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const res = await fetch("/api/activities");
+      if (res.ok) {
+        const data = await res.json();
+        setActivitiesList(data);
+      }
+    } catch (err) {
+      console.error("Error fetching activities:", err);
+    }
+  };
+
+  const fetchUsersList = async () => {
+    try {
+      const res = await fetch("/api/users");
+      if (res.ok) {
+        const data = await res.json();
+        setUsersList(data);
+      }
+    } catch (err) {
+      console.error("Error fetching users list:", err);
+    }
+  };
+
+  const fetchAllWatchlists = async () => {
+    try {
+      const res = await fetch("/api/watchlist?all=true");
+      if (res.ok) {
+        const data = await res.json();
+        setAllWatchlists(data);
+      }
+    } catch (err) {
+      console.error("Error fetching all watchlists:", err);
+    }
+  };
+
+  // Sync state data on mount / auth change
+  useEffect(() => {
+    if (currentUser) {
+      fetchWatchlist();
+      fetchReviews();
+      fetchActivities();
+
+      if (userProfile?.role === "admin") {
+        fetchUsersList();
+        fetchAllWatchlists();
+      }
+
+      // Start 10-second polling interval for live feed updates
+      const interval = setInterval(() => {
+        fetchReviews();
+        fetchActivities();
+        if (userProfile?.role === "admin") {
+          fetchUsersList();
+          fetchAllWatchlists();
+        }
+      }, 10000);
+
+      return () => clearInterval(interval);
+    } else {
+      setWatchlist([]);
+      setUsersList([]);
+      setAllWatchlists([]);
+    }
+  }, [currentUser, userProfile?.role]);
+
+  // 3. Authentication Operations
   const registerUser = async (email, password, username) => {
-    // 1. Verify username uniqueness
-    const q = query(collection(db, "users"), where("username", "==", username));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      throw new Error("Username already exists. Please choose another username.");
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, username })
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Registration failed.");
     }
 
-    // 2. Register user in Firebase Auth
-    const credentials = await createUserWithEmailAndPassword(auth, email, password);
-    const profile = {
-      uid: credentials.user.uid,
-      username,
-      email,
-      avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`,
-      createdAt: new Date().toISOString().split("T")[0],
-      role: "user",
-      isSuspended: false,
-      lastLoginAt: new Date().toISOString()
-    };
-    await setDoc(doc(db, "users", credentials.user.uid), profile);
-    setUserProfile(profile);
+    const data = await res.json();
+    setCurrentUser({ uid: data.uid, email: data.email });
+    setUserProfile(data);
     return true;
   };
 
   const loginUser = async (emailOrUsername, password) => {
-    let targetEmail = emailOrUsername;
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emailOrUsername, password })
+    });
 
-    // Admin account intercept & seed on fresh projects
-    if (emailOrUsername === "@Jrfarkade" && password === "@Sahil267") {
-      targetEmail = "admin@cineverse.com";
-      try {
-        await signInWithEmailAndPassword(auth, targetEmail, password);
-      } catch (err) {
-        if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential" || err.message.includes("credential")) {
-          // Admin doesn't exist yet, seed in Auth and Firestore
-          const creds = await createUserWithEmailAndPassword(auth, targetEmail, password);
-          const adminProfile = {
-            uid: creds.user.uid,
-            username: "@Jrfarkade",
-            email: targetEmail,
-            avatar: "https://api.dicebear.com/7.x/adventurer/svg?seed=Jrfarkade",
-            createdAt: new Date().toISOString().split("T")[0],
-            role: "admin",
-            isSuspended: false,
-            lastLoginAt: new Date().toISOString()
-          };
-          await setDoc(doc(db, "users", creds.user.uid), adminProfile);
-          setCurrentUser(creds.user);
-          setUserProfile(adminProfile);
-          return true;
-        }
-        throw err;
-      }
-      return true;
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Login failed.");
     }
 
-    // Resolve Username to Email if they type username
-    if (!emailOrUsername.includes("@")) {
-      const q = query(collection(db, "users"), where("username", "==", emailOrUsername));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        targetEmail = snap.docs[0].data().email;
-      } else {
-        throw new Error("Invalid username or password.");
-      }
-    }
-
-    const credentials = await signInWithEmailAndPassword(auth, targetEmail, password);
-    const user = credentials.user;
-    
-    // Check suspension status
-    const docSnap = await getDoc(doc(db, "users", user.uid));
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.isSuspended) {
-        await signOut(auth);
-        throw new Error("This account has been suspended by an administrator.");
-      }
-    }
+    const data = await res.json();
+    setCurrentUser({ uid: data.uid, email: data.email });
+    setUserProfile(data);
     return true;
   };
 
   const loginWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    const credentials = await signInWithPopup(auth, provider);
-    const user = credentials.user;
-    const docRef = doc(db, "users", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      const baseUsername = user.displayName ? user.displayName.replace(/\s+/g, "") : user.email.split("@")[0];
-      
-      // Auto-resolve unique username
-      let uniqueUsername = baseUsername;
-      let count = 1;
-      let isUnique = false;
-      while (!isUnique) {
-        const q = query(collection(db, "users"), where("username", "==", uniqueUsername));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-          isUnique = true;
-        } else {
-          uniqueUsername = `${baseUsername}${count}`;
-          count++;
-        }
-      }
-
-      const profile = {
-        uid: user.uid,
-        username: uniqueUsername,
-        email: user.email || "",
-        avatar: user.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${uniqueUsername}`,
-        createdAt: new Date().toISOString().split("T")[0],
-        role: "user",
-        isSuspended: false,
-        lastLoginAt: new Date().toISOString()
-      };
-      await setDoc(docRef, profile);
-      setUserProfile(profile);
-    } else {
-      const data = docSnap.data();
-      if (data.isSuspended) {
-        await signOut(auth);
-        throw new Error("This account has been suspended by an administrator.");
-      }
-      await updateDoc(docRef, { lastLoginAt: new Date().toISOString() });
-    }
+    // Standard OAuth redirect to endpoints
+    window.location.href = "/api/auth/google";
     return true;
   };
 
   const logoutUser = async () => {
-    await signOut(auth);
+    await fetch("/api/auth/logout", { method: "POST" });
+    setCurrentUser(null);
+    setUserProfile(null);
+    setWatchlist([]);
   };
 
-  // Upload Custom Avatar File to Firebase Storage
+  // 4. Storage Operations (R2)
   const uploadAvatar = async (userId, file) => {
-    const storageRef = ref(storage, `avatars/${userId}_${Date.now()}`);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    return url;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/profile/avatar", {
+      method: "POST",
+      body: formData
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to upload file");
+    }
+
+    const data = await res.json();
+    return data.url; // Returns dynamic self-hosted /api/profile/avatar?key=xxx URL
   };
 
   const updateProfile = async (fields) => {
-    if (!currentUser) return;
-    const docRef = doc(db, "users", currentUser.uid);
-    await updateDoc(docRef, fields);
-    setUserProfile(prev => ({ ...prev, ...fields }));
+    const res = await fetch("/api/profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields)
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to update profile");
+    }
+
+    setUserProfile((prev) => ({ ...prev, ...fields }));
   };
 
-  // Watchlist Operations
-  const addToWatchlist = async (media, status, personalRating = 0, episodesWatched = 0, totalEpisodes = 1, seasonsCompleted = 0, rewatchCount = 0) => {
-    if (!currentUser) return;
+  // 5. Watchlist CRUD
+  const addToWatchlist = async (
+    media, 
+    status, 
+    personalRating = 0, 
+    episodesWatched = 0, 
+    totalEpisodes = 1, 
+    seasonsCompleted = 0, 
+    rewatchCount = 0
+  ) => {
+    const res = await fetch("/api/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        media,
+        status,
+        personalRating,
+        episodesWatched,
+        totalEpisodes,
+        seasonsCompleted,
+        rewatchCount
+      })
+    });
 
-    const isAnime = media.genres?.some(g => g.id === 16) && media.original_language === "ja";
-    const isKdrama = !media.title && media.original_language === "ko";
-    const concreteType = isAnime ? "anime" : (isKdrama ? "kdrama" : (media.title ? "movie" : "tv"));
-
-    const item = {
-      userId: currentUser.uid,
-      mediaId: String(media.id),
-      title: media.title || media.name,
-      type: concreteType,
-      originalType: media.title ? "movie" : "tv",
-      posterPath: media.poster_path,
-      status,
-      personalRating: Number(personalRating),
-      episodesWatched: Number(episodesWatched),
-      totalEpisodes: Number(totalEpisodes),
-      seasonsCompleted: Number(seasonsCompleted),
-      rewatchCount: Number(rewatchCount),
-      updatedAt: new Date().toISOString(),
-      completionDate: status === "Completed" ? new Date().toISOString().split("T")[0] : ""
-    };
-
-    const docId = `${currentUser.uid}_${media.id}`;
-    await setDoc(doc(db, "watchlists", docId), item);
-    await addSocialActivity(currentUser.uid, `added **${item.title}** to **${status}**`);
+    if (res.ok) {
+      fetchWatchlist();
+      fetchActivities();
+    }
   };
 
   const updateWatchlistProgress = async (mediaId, fields) => {
-    if (!currentUser) return;
+    const res = await fetch("/api/watchlist", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaId, fields })
+    });
 
-    const docId = `${currentUser.uid}_${mediaId}`;
-    const docRef = doc(db, "watchlists", docId);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return;
-
-    const currentItem = docSnap.data();
-    const updatedFields = {
-      ...fields,
-      updatedAt: new Date().toISOString(),
-      completionDate: fields.status === "Completed" ? new Date().toISOString().split("T")[0] : (currentItem.completionDate || "")
-    };
-
-    await updateDoc(docRef, updatedFields);
-
-    if (fields.status && fields.status !== currentItem.status) {
-      await addSocialActivity(currentUser.uid, `updated **${currentItem.title}** status to **${fields.status}**`);
+    if (res.ok) {
+      fetchWatchlist();
+      fetchActivities();
     }
   };
 
   const removeFromWatchlist = async (mediaId) => {
-    if (!currentUser) return;
-    const docId = `${currentUser.uid}_${mediaId}`;
-    await deleteDoc(doc(db, "watchlists", docId));
+    const res = await fetch(`/api/watchlist?mediaId=${encodeURIComponent(mediaId)}`, {
+      method: "DELETE"
+    });
+
+    if (res.ok) {
+      fetchWatchlist();
+    }
   };
 
-  // Review Operations
+  // 6. Review Actions
   const addReview = async (mediaId, mediaTitle, content, rating) => {
-    if (!currentUser || !userProfile) return;
+    const res = await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mediaId, mediaTitle, content, rating })
+    });
 
-    const review = {
-      userId: currentUser.uid,
-      username: userProfile.username,
-      avatar: userProfile.avatar,
-      mediaId: String(mediaId),
-      mediaTitle,
-      content,
-      rating: Number(rating),
-      likes: [],
-      comments: [],
-      createdAt: new Date().toISOString()
-    };
-
-    await addDoc(collection(db, "reviews"), review);
-    await addSocialActivity(currentUser.uid, `reviewed **${mediaTitle}** and rated it **${rating}/10**`);
+    if (res.ok) {
+      fetchReviews();
+      fetchActivities();
+    }
   };
 
   const likeReview = async (reviewId) => {
-    if (!currentUser) return;
-
-    const docRef = doc(db, "reviews", reviewId);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return;
-    const reviewData = docSnap.data();
-
-    const likes = reviewData.likes || [];
-    const isLiked = likes.includes(currentUser.uid);
-    await updateDoc(docRef, {
-      likes: isLiked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid)
+    const res = await fetch("/api/reviews/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewId })
     });
+
+    if (res.ok) {
+      fetchReviews();
+    }
   };
 
   const addCommentToReview = async (reviewId, commentText) => {
-    if (!currentUser || !userProfile) return;
-
-    const comment = {
-      userId: currentUser.uid,
-      username: userProfile.username,
-      avatar: userProfile.avatar,
-      text: commentText,
-      createdAt: new Date().toISOString()
-    };
-
-    const docRef = doc(db, "reviews", reviewId);
-    await updateDoc(docRef, {
-      comments: arrayUnion(comment)
+    const res = await fetch("/api/reviews/comment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewId, text: commentText })
     });
+
+    if (res.ok) {
+      fetchReviews();
+    }
   };
 
-  // Admin Controls
+  // 7. Admin Controls
   const deleteReview = async (reviewId) => {
-    await deleteDoc(doc(db, "reviews", reviewId));
+    const res = await fetch(`/api/reviews?id=${encodeURIComponent(reviewId)}`, {
+      method: "DELETE"
+    });
+
+    if (res.ok) {
+      fetchReviews();
+    }
   };
 
   const getUserWatchlist = async (userId) => {
-    const q = query(collection(db, "watchlists"), where("userId", "==", userId));
-    const snapshot = await getDocs(q);
-    const list = [];
-    snapshot.forEach((doc) => list.push(doc.data()));
-    return list;
+    const res = await fetch(`/api/watchlist?userId=${encodeURIComponent(userId)}`);
+    if (res.ok) {
+      return await res.json();
+    }
+    return [];
   };
 
   const updateUserStatus = async (userId, isSuspended) => {
-    await updateDoc(doc(db, "users", userId), { isSuspended });
-    setUsersList(prev => prev.map(u => u.uid === userId ? { ...u, isSuspended } : u));
-    if (userProfile && userProfile.uid === userId) {
-      setUserProfile(prev => ({ ...prev, isSuspended }));
+    const res = await fetch("/api/users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, isSuspended })
+    });
+
+    if (res.ok) {
+      fetchUsersList();
     }
   };
 
   const deleteUser = async (userId) => {
-    await deleteDoc(doc(db, "users", userId));
-    const q = query(collection(db, "watchlists"), where("userId", "==", userId));
-    const snapshot = await getDocs(q);
-    snapshot.forEach(async (d) => {
-      await deleteDoc(d.ref);
+    const res = await fetch(`/api/users?userId=${encodeURIComponent(userId)}`, {
+      method: "DELETE"
     });
-    setUsersList(prev => prev.filter(u => u.uid !== userId));
+
+    if (res.ok) {
+      fetchUsersList();
+    }
   };
 
   const getSocialFeed = () => {

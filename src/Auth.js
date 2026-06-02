@@ -14,6 +14,22 @@ const Auth = () => {
   const { loginUser, registerUser, loginWithGoogle } = useGlobalContext();
   const navigate = useNavigate();
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    if (error) {
+      if (error === "suspended") {
+        setErrorMsg("This account has been suspended by an administrator.");
+      } else if (error === "token_exchange_failed" || error === "callback_error" || error === "fetch_userinfo_failed") {
+        setErrorMsg("Google Sign-In failed. Please try again.");
+      } else if (error === "missing_code") {
+        setErrorMsg("OAuth authorization code was missing.");
+      } else {
+        setErrorMsg("An error occurred during authentication.");
+      }
+    }
+  }, []);
+
   const handleGoogleLogin = async () => {
     setErrorMsg("");
     setLoading(true);

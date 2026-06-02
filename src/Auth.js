@@ -51,12 +51,17 @@ const Auth = () => {
     e.preventDefault();
     setErrorMsg("");
 
-    if (!email || !password || (isRegister && !username)) {
+    const trimmedEmail = email.trim();
+    const trimmedUsername = username.trim();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+
+    if (!trimmedEmail || !trimmedPassword || (isRegister && !trimmedUsername)) {
       setErrorMsg("Please fill in all fields.");
       return;
     }
 
-    if (isRegister && password !== confirmPassword) {
+    if (isRegister && trimmedPassword !== trimmedConfirmPassword) {
       setErrorMsg("Passwords do not match.");
       return;
     }
@@ -64,14 +69,14 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isRegister) {
-        const success = await registerUser(email, password, username);
+        const success = await registerUser(trimmedEmail, trimmedPassword, trimmedUsername);
         if (success) {
           navigate("/");
         } else {
           setErrorMsg("Registration failed. Email might already be in use.");
         }
       } else {
-        const success = await loginUser(email, password);
+        const success = await loginUser(trimmedEmail, trimmedPassword);
         if (success) {
           navigate("/");
         } else {

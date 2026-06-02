@@ -14,7 +14,11 @@ export async function onRequestPost(context) {
   }
 
   const { email, password, username } = body;
-  if (!email || !password || !username) {
+  const emailVal = email?.trim();
+  const usernameVal = username?.trim();
+  const passwordVal = password?.trim();
+
+  if (!emailVal || !passwordVal || !usernameVal) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
@@ -31,7 +35,7 @@ export async function onRequestPost(context) {
 
   try {
     // 1. Verify username uniqueness
-    const userCheck = await db.prepare("SELECT id FROM users WHERE username = ?").bind(username).first();
+    const userCheck = await db.prepare("SELECT id FROM users WHERE username = ?").bind(usernameVal).first();
     if (userCheck) {
       return new Response(
         JSON.stringify({ error: "Username already exists. Please choose another username." }),
@@ -40,7 +44,7 @@ export async function onRequestPost(context) {
     }
 
     // 2. Verify email uniqueness
-    const emailCheck = await db.prepare("SELECT id FROM users WHERE email = ?").bind(email).first();
+    const emailCheck = await db.prepare("SELECT id FROM users WHERE email = ?").bind(emailVal).first();
     if (emailCheck) {
       return new Response(
         JSON.stringify({ error: "Email already in use." }),
@@ -50,16 +54,16 @@ export async function onRequestPost(context) {
 
     // 3. Hash password and insert user
     const userId = crypto.randomUUID();
-    const passwordHash = await hashPassword(password);
+    const passwordHash = await hashPassword(passwordVal);
     const createdAt = new Date().toISOString().split("T")[0];
-    const defaultAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`;
+    const defaultAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${usernameVal}`;
 
     await db.prepare(
       "INSERT INTO users (id, username, email, password_hash, avatar, bio, role, is_suspended, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     ).bind(
       userId,
-      username,
-      email,
+      usernameVal,
+      emailVal,
       passwordHash,
       defaultAvatar,
       "",
@@ -71,13 +75,13 @@ export async function onRequestPost(context) {
 
     // 4. Generate JWT & Cookie
     const secret = env.JWT_SECRET || "fallback_secret_keep_it_safe_123!";
-    const sessionPayload = { id: userId, username, role: "user" };
+    const sessionPayload = { id: userId, username: usernameVal, role: "user" };
     const token = await signJWT(sessionPayload, secret);
 
     const userProfile = {
       uid: userId,
-      username,
-      email,
+      username: usernameVal,
+      email: emailVal,
       avatar: defaultAvatar,
       createdAt,
       role: "user",

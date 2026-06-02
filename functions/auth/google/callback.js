@@ -1,4 +1,4 @@
-import { signJWT } from "../../../utils/crypto";
+import { signJWT } from "../../utils/crypto";
 
 export async function onRequestGet(context) {
   const { request, env } = context;
@@ -63,25 +63,14 @@ export async function onRequestGet(context) {
     const photoURL = googleUser.picture;
 
     // 3. Resolve user profile in D1
-    // Check if user already exists
     let user = await db.prepare("SELECT * FROM users WHERE id = ? OR email = ?").bind(googleId, email).first();
     
     if (user) {
-      // If user exists by email but has a different ID (e.g. was registered with email/password previously),
-      // we can link them or log them in directly
-      if (user.id !== googleId) {
-        // Update user ID to keep it consistent or use existing user.id as key
-        // Let's use existing user ID for JWT payload
-      }
-      
       if (user.is_suspended === 1) {
         return Response.redirect(`${url.origin}/auth?error=suspended`, 302);
       }
-
-      // Update last login
       await db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind(new Date().toISOString(), user.id).run();
     } else {
-      // User doesn't exist, create a new profile with a unique username
       const baseUsername = name ? name.replace(/\s+/g, "") : email.split("@")[0];
       
       let uniqueUsername = baseUsername;
@@ -107,7 +96,7 @@ export async function onRequestGet(context) {
         googleId,
         uniqueUsername,
         email,
-        null, // No password hash for OAuth
+        null,
         defaultAvatar,
         "",
         "user",

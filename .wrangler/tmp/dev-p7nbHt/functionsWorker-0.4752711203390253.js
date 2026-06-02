@@ -4,6 +4,89 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // .wrangler/tmp/pages-cOd6iM/functionsWorker-0.4752711203390253.mjs
 var __defProp2 = Object.defineProperty;
 var __name2 = /* @__PURE__ */ __name((target, value) => __defProp2(target, "name", { value, configurable: true }), "__name");
+async function onRequestGet(context) {
+  const { env } = context;
+  const user = context.data.user;
+  if (!user || user.role !== "admin") {
+    return new Response(JSON.stringify({ error: "Forbidden: Admin access required" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  const db = env.DB;
+  if (!db) {
+    return new Response(JSON.stringify({ error: "Database binding missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  try {
+    const todayStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    const queries = [
+      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin'"),
+      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND is_suspended = 0"),
+      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND is_suspended = 1"),
+      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND created_at = ?").bind(todayStr),
+      db.prepare("SELECT COUNT(*) as count FROM watchlist"),
+      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'movie'"),
+      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'tv'"),
+      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'kdrama'"),
+      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'anime'"),
+      db.prepare("SELECT COUNT(*) as count FROM reviews")
+    ];
+    const results = await db.batch(queries);
+    const stats = {
+      globalTotalUsers: results[0].results[0].count,
+      globalActiveUsers: results[1].results[0].count,
+      globalSuspendedUsers: results[2].results[0].count,
+      globalNewUsersToday: results[3].results[0].count,
+      globalTotalTracked: results[4].results[0].count,
+      globalMoviesCount: results[5].results[0].count,
+      globalTvCount: results[6].results[0].count,
+      globalKdramasCount: results[7].results[0].count,
+      globalAnimeCount: results[8].results[0].count,
+      globalTotalReviews: results[9].results[0].count
+    };
+    return new Response(JSON.stringify(stats), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+}
+__name(onRequestGet, "onRequestGet");
+__name2(onRequestGet, "onRequestGet");
+async function onRequestGet2(context) {
+  const { env } = context;
+  const clientId = env.GOOGLE_CLIENT_ID;
+  const redirectUri = env.GOOGLE_REDIRECT_URI;
+  if (!clientId || !redirectUri) {
+    return new Response(
+      JSON.stringify({ error: "Google OAuth client configuration (GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI) is missing on the server." }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+  const options = {
+    redirect_uri: redirectUri,
+    client_id: clientId,
+    access_type: "offline",
+    response_type: "code",
+    prompt: "consent",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email"
+    ].join(" ")
+  };
+  const qs = new URLSearchParams(options).toString();
+  return Response.redirect(`${rootUrl}?${qs}`, 302);
+}
+__name(onRequestGet2, "onRequestGet2");
+__name2(onRequestGet2, "onRequestGet");
 function base64url(stringOrBuffer) {
   let base64;
   if (typeof stringOrBuffer === "string") {
@@ -126,200 +209,6 @@ async function verifyPassword(password, storedHash) {
 }
 __name(verifyPassword, "verifyPassword");
 __name2(verifyPassword, "verifyPassword");
-async function onRequestGet(context) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
-  const clientId = env.GOOGLE_CLIENT_ID;
-  const clientSecret = env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = env.GOOGLE_REDIRECT_URI;
-  if (!code) {
-    return Response.redirect(`${url.origin}/auth?error=missing_code`, 302);
-  }
-  const db = env.DB;
-  if (!db) {
-    return new Response(JSON.stringify({ error: "Database binding missing" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-  try {
-    const tokenUrl = "https://oauth2.googleapis.com/token";
-    const tokenResponse = await fetch(tokenUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri,
-        grant_type: "authorization_code"
-      })
-    });
-    if (!tokenResponse.ok) {
-      const errText = await tokenResponse.text();
-      console.error("Token exchange failed:", errText);
-      return Response.redirect(`${url.origin}/auth?error=token_exchange_failed`, 302);
-    }
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
-    const userinfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
-    const userinfoResponse = await fetch(userinfoUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    if (!userinfoResponse.ok) {
-      console.error("Failed to fetch userinfo");
-      return Response.redirect(`${url.origin}/auth?error=fetch_userinfo_failed`, 302);
-    }
-    const googleUser = await userinfoResponse.json();
-    const googleId = googleUser.id;
-    const email = googleUser.email;
-    const name = googleUser.name;
-    const photoURL = googleUser.picture;
-    let user = await db.prepare("SELECT * FROM users WHERE id = ? OR email = ?").bind(googleId, email).first();
-    if (user) {
-      if (user.id !== googleId) {
-      }
-      if (user.is_suspended === 1) {
-        return Response.redirect(`${url.origin}/auth?error=suspended`, 302);
-      }
-      await db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind((/* @__PURE__ */ new Date()).toISOString(), user.id).run();
-    } else {
-      const baseUsername = name ? name.replace(/\s+/g, "") : email.split("@")[0];
-      let uniqueUsername = baseUsername;
-      let count = 1;
-      let isUnique = false;
-      while (!isUnique) {
-        const check = await db.prepare("SELECT id FROM users WHERE username = ?").bind(uniqueUsername).first();
-        if (!check) {
-          isUnique = true;
-        } else {
-          uniqueUsername = `${baseUsername}${count}`;
-          count++;
-        }
-      }
-      const defaultAvatar = photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${uniqueUsername}`;
-      const createdAt = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-      await db.prepare(
-        "INSERT INTO users (id, username, email, password_hash, avatar, bio, role, is_suspended, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-      ).bind(
-        googleId,
-        uniqueUsername,
-        email,
-        null,
-        // No password hash for OAuth
-        defaultAvatar,
-        "",
-        "user",
-        0,
-        createdAt,
-        (/* @__PURE__ */ new Date()).toISOString()
-      ).run();
-      user = {
-        id: googleId,
-        username: uniqueUsername,
-        role: "user"
-      };
-    }
-    const secret = env.JWT_SECRET || "fallback_secret_keep_it_safe_123!";
-    const token = await signJWT({ id: user.id, username: user.username, role: user.role }, secret);
-    const headers = new Headers();
-    headers.set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000`);
-    headers.set("Location", `${url.origin}/`);
-    return new Response(null, {
-      status: 302,
-      headers
-    });
-  } catch (err) {
-    console.error("Google login callback error:", err);
-    return Response.redirect(`${url.origin}/auth?error=callback_error`, 302);
-  }
-}
-__name(onRequestGet, "onRequestGet");
-__name2(onRequestGet, "onRequestGet");
-async function onRequestGet2(context) {
-  const { env } = context;
-  const user = context.data.user;
-  if (!user || user.role !== "admin") {
-    return new Response(JSON.stringify({ error: "Forbidden: Admin access required" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-  const db = env.DB;
-  if (!db) {
-    return new Response(JSON.stringify({ error: "Database binding missing" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-  try {
-    const todayStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-    const queries = [
-      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin'"),
-      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND is_suspended = 0"),
-      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND is_suspended = 1"),
-      db.prepare("SELECT COUNT(*) as count FROM users WHERE role != 'admin' AND created_at = ?").bind(todayStr),
-      db.prepare("SELECT COUNT(*) as count FROM watchlist"),
-      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'movie'"),
-      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'tv'"),
-      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'kdrama'"),
-      db.prepare("SELECT COUNT(*) as count FROM watchlist WHERE type = 'anime'"),
-      db.prepare("SELECT COUNT(*) as count FROM reviews")
-    ];
-    const results = await db.batch(queries);
-    const stats = {
-      globalTotalUsers: results[0].results[0].count,
-      globalActiveUsers: results[1].results[0].count,
-      globalSuspendedUsers: results[2].results[0].count,
-      globalNewUsersToday: results[3].results[0].count,
-      globalTotalTracked: results[4].results[0].count,
-      globalMoviesCount: results[5].results[0].count,
-      globalTvCount: results[6].results[0].count,
-      globalKdramasCount: results[7].results[0].count,
-      globalAnimeCount: results[8].results[0].count,
-      globalTotalReviews: results[9].results[0].count
-    };
-    return new Response(JSON.stringify(stats), {
-      status: 200,
-      headers: { "Content-Type": "application/json" }
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
-    });
-  }
-}
-__name(onRequestGet2, "onRequestGet2");
-__name2(onRequestGet2, "onRequestGet");
-async function onRequestGet3(context) {
-  const { env } = context;
-  const clientId = env.GOOGLE_CLIENT_ID;
-  const redirectUri = env.GOOGLE_REDIRECT_URI;
-  if (!clientId || !redirectUri) {
-    return new Response(
-      JSON.stringify({ error: "Google OAuth client configuration (GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI) is missing on the server." }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-  const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
-  const options = {
-    redirect_uri: redirectUri,
-    client_id: clientId,
-    access_type: "offline",
-    response_type: "code",
-    prompt: "consent",
-    scope: [
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "https://www.googleapis.com/auth/userinfo.email"
-    ].join(" ")
-  };
-  const qs = new URLSearchParams(options).toString();
-  return Response.redirect(`${rootUrl}?${qs}`, 302);
-}
-__name(onRequestGet3, "onRequestGet3");
-__name2(onRequestGet3, "onRequestGet");
 async function onRequestPost(context) {
   const { request, env } = context;
   let body;
@@ -460,7 +349,7 @@ async function onRequestPost2() {
 }
 __name(onRequestPost2, "onRequestPost2");
 __name2(onRequestPost2, "onRequestPost");
-async function onRequestGet4(context) {
+async function onRequestGet3(context) {
   const { env } = context;
   const user = context.data.user;
   if (!user || !user.id) {
@@ -522,8 +411,8 @@ async function onRequestGet4(context) {
     });
   }
 }
-__name(onRequestGet4, "onRequestGet4");
-__name2(onRequestGet4, "onRequestGet");
+__name(onRequestGet3, "onRequestGet3");
+__name2(onRequestGet3, "onRequestGet");
 async function onRequestPost3(context) {
   const { request, env } = context;
   let body;
@@ -715,6 +604,114 @@ async function onRequestPost5(context) {
 }
 __name(onRequestPost5, "onRequestPost5");
 __name2(onRequestPost5, "onRequestPost");
+async function onRequestGet4(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const clientId = env.GOOGLE_CLIENT_ID;
+  const clientSecret = env.GOOGLE_CLIENT_SECRET;
+  const redirectUri = env.GOOGLE_REDIRECT_URI;
+  if (!code) {
+    return Response.redirect(`${url.origin}/auth?error=missing_code`, 302);
+  }
+  const db = env.DB;
+  if (!db) {
+    return new Response(JSON.stringify({ error: "Database binding missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+  try {
+    const tokenUrl = "https://oauth2.googleapis.com/token";
+    const tokenResponse = await fetch(tokenUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code"
+      })
+    });
+    if (!tokenResponse.ok) {
+      const errText = await tokenResponse.text();
+      console.error("Token exchange failed:", errText);
+      return Response.redirect(`${url.origin}/auth?error=token_exchange_failed`, 302);
+    }
+    const tokenData = await tokenResponse.json();
+    const accessToken = tokenData.access_token;
+    const userinfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
+    const userinfoResponse = await fetch(userinfoUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!userinfoResponse.ok) {
+      console.error("Failed to fetch userinfo");
+      return Response.redirect(`${url.origin}/auth?error=fetch_userinfo_failed`, 302);
+    }
+    const googleUser = await userinfoResponse.json();
+    const googleId = googleUser.id;
+    const email = googleUser.email;
+    const name = googleUser.name;
+    const photoURL = googleUser.picture;
+    let user = await db.prepare("SELECT * FROM users WHERE id = ? OR email = ?").bind(googleId, email).first();
+    if (user) {
+      if (user.is_suspended === 1) {
+        return Response.redirect(`${url.origin}/auth?error=suspended`, 302);
+      }
+      await db.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind((/* @__PURE__ */ new Date()).toISOString(), user.id).run();
+    } else {
+      const baseUsername = name ? name.replace(/\s+/g, "") : email.split("@")[0];
+      let uniqueUsername = baseUsername;
+      let count = 1;
+      let isUnique = false;
+      while (!isUnique) {
+        const check = await db.prepare("SELECT id FROM users WHERE username = ?").bind(uniqueUsername).first();
+        if (!check) {
+          isUnique = true;
+        } else {
+          uniqueUsername = `${baseUsername}${count}`;
+          count++;
+        }
+      }
+      const defaultAvatar = photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${uniqueUsername}`;
+      const createdAt = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+      await db.prepare(
+        "INSERT INTO users (id, username, email, password_hash, avatar, bio, role, is_suspended, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      ).bind(
+        googleId,
+        uniqueUsername,
+        email,
+        null,
+        defaultAvatar,
+        "",
+        "user",
+        0,
+        createdAt,
+        (/* @__PURE__ */ new Date()).toISOString()
+      ).run();
+      user = {
+        id: googleId,
+        username: uniqueUsername,
+        role: "user"
+      };
+    }
+    const secret = env.JWT_SECRET || "fallback_secret_keep_it_safe_123!";
+    const token = await signJWT({ id: user.id, username: user.username, role: user.role }, secret);
+    const headers = new Headers();
+    headers.set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000`);
+    headers.set("Location", `${url.origin}/`);
+    return new Response(null, {
+      status: 302,
+      headers
+    });
+  } catch (err) {
+    console.error("Google login callback error:", err);
+    return Response.redirect(`${url.origin}/auth?error=callback_error`, 302);
+  }
+}
+__name(onRequestGet4, "onRequestGet4");
+__name2(onRequestGet4, "onRequestGet");
 async function onRequest(context) {
   const { request, env } = context;
   const user = context.data.user;
@@ -1422,25 +1419,18 @@ __name(parseCookies, "parseCookies");
 __name2(parseCookies, "parseCookies");
 var routes = [
   {
-    routePath: "/api/auth/google/callback",
-    mountPath: "/api/auth/google",
-    method: "GET",
-    middlewares: [],
-    modules: [onRequestGet]
-  },
-  {
     routePath: "/api/admin/stats",
     mountPath: "/api/admin",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet2]
+    modules: [onRequestGet]
   },
   {
     routePath: "/api/auth/google",
     mountPath: "/api/auth",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet3]
+    modules: [onRequestGet2]
   },
   {
     routePath: "/api/auth/login",
@@ -1461,7 +1451,7 @@ var routes = [
     mountPath: "/api/auth",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet4]
+    modules: [onRequestGet3]
   },
   {
     routePath: "/api/auth/register",
@@ -1483,6 +1473,13 @@ var routes = [
     method: "POST",
     middlewares: [],
     modules: [onRequestPost5]
+  },
+  {
+    routePath: "/auth/google/callback",
+    mountPath: "/auth/google",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet4]
   },
   {
     routePath: "/api/profile/avatar",

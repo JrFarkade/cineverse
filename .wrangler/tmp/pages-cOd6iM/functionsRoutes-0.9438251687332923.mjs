@@ -1,4 +1,3 @@
-import { onRequestGet as __api_auth_google_callback_js_onRequestGet } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\auth\\google\\callback.js"
 import { onRequestGet as __api_admin_stats_js_onRequestGet } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\admin\\stats.js"
 import { onRequestGet as __api_auth_google_js_onRequestGet } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\auth\\google.js"
 import { onRequestPost as __api_auth_login_js_onRequestPost } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\auth\\login.js"
@@ -7,6 +6,7 @@ import { onRequestGet as __api_auth_me_js_onRequestGet } from "D:\\Z-A\\VS Code\
 import { onRequestPost as __api_auth_register_js_onRequestPost } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\auth\\register.js"
 import { onRequestPost as __api_reviews_comment_js_onRequestPost } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\reviews\\comment.js"
 import { onRequestPost as __api_reviews_like_js_onRequestPost } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\reviews\\like.js"
+import { onRequestGet as __auth_google_callback_js_onRequestGet } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\auth\\google\\callback.js"
 import { onRequest as __api_profile_avatar_js_onRequest } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\profile\\avatar.js"
 import { onRequestGet as __api_activities_js_onRequestGet } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\activities.js"
 import { onRequestPut as __api_profile_js_onRequestPut } from "D:\\Z-A\\VS Code\\Anti\\cineverse\\functions\\api\\profile.js"
@@ -17,13 +17,6 @@ import { onRequest as __api__middleware_js_onRequest } from "D:\\Z-A\\VS Code\\A
 
 export const routes = [
     {
-      routePath: "/api/auth/google/callback",
-      mountPath: "/api/auth/google",
-      method: "GET",
-      middlewares: [],
-      modules: [__api_auth_google_callback_js_onRequestGet],
-    },
-  {
       routePath: "/api/admin/stats",
       mountPath: "/api/admin",
       method: "GET",
@@ -78,6 +71,13 @@ export const routes = [
       method: "POST",
       middlewares: [],
       modules: [__api_reviews_like_js_onRequestPost],
+    },
+  {
+      routePath: "/auth/google/callback",
+      mountPath: "/auth/google",
+      method: "GET",
+      middlewares: [],
+      modules: [__auth_google_callback_js_onRequestGet],
     },
   {
       routePath: "/api/profile/avatar",

@@ -1,4 +1,4 @@
-import { signJWT } from "../../utils/crypto";
+import { signJWT } from "./utils/crypto";
 
 export async function onRequestGet(context) {
   const { request, env } = context;

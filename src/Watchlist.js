@@ -9,6 +9,12 @@ const Watchlist = () => {
   const [activeTab, setActiveTab] = useState("All");
   const [filterType, setFilterType] = useState("All"); // All, movie, tv, kdrama, anime
 
+  const preloadPoster = (posterPath) => {
+    if (!posterPath) return;
+    const img = new Image();
+    img.src = `https://image.tmdb.org/t/p/w500${posterPath}`;
+  };
+
   const tabs = ["All", "Watching", "Completed", "On Hold", "Dropped", "Plan to Watch"];
 
   const handleIncrementEpisode = async (item) => {
@@ -86,6 +92,8 @@ const Watchlist = () => {
                       to={`/${item.originalType || (item.type === "anime" || item.type === "kdrama" ? "tv" : item.type)}/${item.mediaId}`} 
                       state={{ mediaDetails: { id: item.mediaId, title: item.title, type: item.type, poster_path: item.posterPath } }} 
                       className="watchlist-title-link"
+                      onMouseEnter={() => preloadPoster(item.posterPath)}
+                      onFocus={() => preloadPoster(item.posterPath)}
                     >
                       <h3>{item.title}</h3>
                     </NavLink>

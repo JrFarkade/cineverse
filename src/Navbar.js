@@ -1,9 +1,10 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useGlobalContext } from "./context";
 
 const Navbar = () => {
   const { currentUser, userProfile, logoutUser } = useGlobalContext();
+  const location = useLocation();
   const isAdmin = userProfile?.username === "@Jrfarkade" || userProfile?.role === "admin";
 
   return (
@@ -25,7 +26,7 @@ const Navbar = () => {
             <button onClick={logoutUser} className="logout-btn">Logout</button>
           </>
         ) : (
-          <NavLink to="/auth" className="nav-item auth-nav-btn">Login / Register</NavLink>
+          <NavLink to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} className="nav-item auth-nav-btn">Login / Register</NavLink>
         )}
       </div>
     </nav>

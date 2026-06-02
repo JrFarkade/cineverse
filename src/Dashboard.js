@@ -55,6 +55,12 @@ const CarouselSection = ({ title, items, mediaType, carouselId }) => {
     }
   };
 
+  const preloadPoster = (posterPath) => {
+    if (!posterPath) return;
+    const img = new Image();
+    img.src = `https://image.tmdb.org/t/p/w500${posterPath}`;
+  };
+
   if (!items || items.length === 0) return null;
 
   return (
@@ -90,6 +96,8 @@ const CarouselSection = ({ title, items, mediaType, carouselId }) => {
                 state={{ mediaDetails: item }} 
                 key={item.id} 
                 className="dashboard-card-link"
+                onMouseEnter={() => preloadPoster(item.poster_path)}
+                onFocus={() => preloadPoster(item.poster_path)}
               >
                 <div className="dashboard-card">
                   <img src={posterUrl} alt={displayTitle} />

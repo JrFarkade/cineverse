@@ -1,5 +1,5 @@
 export async function onRequestGet(context) {
-  const { env } = context;
+  const { request, env } = context;
 
   const clientId = env.GOOGLE_CLIENT_ID;
   const redirectUri = env.GOOGLE_REDIRECT_URI;
@@ -11,6 +11,9 @@ export async function onRequestGet(context) {
     );
   }
 
+  const url = new URL(request.url);
+  const redirectPath = url.searchParams.get("redirect") || "/";
+
   const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
   const options = {
     redirect_uri: redirectUri,
@@ -18,6 +21,7 @@ export async function onRequestGet(context) {
     access_type: "offline",
     response_type: "code",
     prompt: "consent",
+    state: redirectPath,
     scope: [
       "https://www.googleapis.com/auth/userinfo.profile",
       "https://www.googleapis.com/auth/userinfo.email"

@@ -1374,3 +1374,43 @@ a:hover img {
   height: 2rem;
 }
 
+/* Dynamic Poster Loading Skeleton and Animations */
+.detail-poster-figure {
+  position: relative;
+  overflow: hidden;
+}
+
+.poster-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+  border-top-left-radius: 2rem;
+  border-bottom-left-radius: 2rem;
+  z-index: 1;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Adjust poster skeleton border-radius for responsive grid */
+@media (max-width: 998px) {
+  .poster-skeleton {
+    border-radius: 1.5rem !important;
+    max-width: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+

@@ -184,9 +184,9 @@ export const AppProvider = ({ children }) => {
     return true;
   };
 
-  const loginWithGoogle = async () => {
-    // Standard OAuth redirect to endpoints
-    window.location.href = "/api/auth/google";
+  const loginWithGoogle = async (redirectPath = "/") => {
+    // Standard OAuth redirect to endpoints with state query parameter
+    window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
     return true;
   };
 

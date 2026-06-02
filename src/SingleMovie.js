@@ -73,6 +73,13 @@ const SingleMovie = () => {
   // Comment State Map (reviewId -> comment text)
   const [commentInputs, setCommentInputs] = useState({});
 
+  // Image load tracking state
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [id]);
+
   useEffect(() => {
     if (watchlistItem) {
       setStatus(watchlistItem.status);
@@ -200,8 +207,18 @@ const SingleMovie = () => {
       {/* 1. Main Media Card */}
       <div className="movie-detail-card">
         <figure className="detail-poster-figure">
-          <img src={posterImg} alt={movie.title || movie.name || "Poster"} />
+          {!imageLoaded && <div className="poster-skeleton"></div>}
+          <img 
+            src={posterImg} 
+            alt={movie.title || movie.name || "Poster"} 
+            onLoad={() => setImageLoaded(true)}
+            style={{ 
+              opacity: imageLoaded ? 1 : 0, 
+              transition: "opacity 0.3s ease-in-out" 
+            }} 
+          />
         </figure>
+
         
         <div className="detail-info-content">
           <h2 className="detail-title">{movie.title || movie.name}</h2>
@@ -312,7 +329,7 @@ const SingleMovie = () => {
         ) : (
           <div className="auth-prompt-tracking">
             <p>Please log in to manage your tracking list, rate, and review.</p>
-            <NavLink to="/auth" className="auth-link-btn">Login / Register</NavLink>
+            <NavLink to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} className="auth-link-btn">Login / Register</NavLink>
           </div>
         )}
       </div>

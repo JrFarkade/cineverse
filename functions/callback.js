@@ -116,10 +116,11 @@ export async function onRequestGet(context) {
     const secret = env.JWT_SECRET || "fallback_secret_keep_it_safe_123!";
     const token = await signJWT({ id: user.id, username: user.username, role: user.role }, secret);
 
-    // 5. Redirect browser home with secure cookie
+    // 5. Redirect browser with secure cookie, honoring state parameter for original page redirect
+    const state = url.searchParams.get("state") || "/";
     const headers = new Headers();
     headers.set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=2592000`);
-    headers.set("Location", `${url.origin}/`);
+    headers.set("Location", `${url.origin}${state}`);
     
     return new Response(null, {
       status: 302,

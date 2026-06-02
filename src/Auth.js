@@ -14,6 +14,10 @@ const Auth = () => {
   const { loginUser, registerUser, loginWithGoogle } = useGlobalContext();
   const navigate = useNavigate();
 
+  // Parse redirect search parameter
+  const queryParams = new URLSearchParams(window.location.search);
+  const redirectPath = queryParams.get("redirect") || "/";
+
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
@@ -34,15 +38,9 @@ const Auth = () => {
     setErrorMsg("");
     setLoading(true);
     try {
-      const success = await loginWithGoogle();
-      if (success) {
-        navigate("/");
-      } else {
-        setErrorMsg("Google Sign-In failed.");
-      }
+      await loginWithGoogle(redirectPath);
     } catch (err) {
       setErrorMsg(err.message || "Google Sign-In failed.");
-    } finally {
       setLoading(false);
     }
   };
@@ -71,14 +69,14 @@ const Auth = () => {
       if (isRegister) {
         const success = await registerUser(trimmedEmail, trimmedPassword, trimmedUsername);
         if (success) {
-          navigate("/");
+          navigate(redirectPath);
         } else {
           setErrorMsg("Registration failed. Email might already be in use.");
         }
       } else {
         const success = await loginUser(trimmedEmail, trimmedPassword);
         if (success) {
-          navigate("/");
+          navigate(redirectPath);
         } else {
           setErrorMsg("Invalid email or password.");
         }

@@ -7,6 +7,12 @@ const placeholderImg = "https://via.placeholder.com/300x450?text=No+Poster";
 const Movie = () => {
   const { movie, isLoading } = useGlobalContext();
 
+  const preloadPoster = (posterPath) => {
+    if (!posterPath) return;
+    const img = new Image();
+    img.src = `https://image.tmdb.org/t/p/w500${posterPath}`;
+  };
+
   if (isLoading) {
     return <div className="loading">Loading....</div>;
   }
@@ -31,7 +37,13 @@ const Movie = () => {
             const concreteType = media_type || "movie";
 
             return (
-              <NavLink to={`/${concreteType}/${id}`} state={{ mediaDetails: curMovieElem }} key={id}>
+              <NavLink 
+                to={`/${concreteType}/${id}`} 
+                state={{ mediaDetails: curMovieElem }} 
+                key={id}
+                onMouseEnter={() => preloadPoster(poster_path)}
+                onFocus={() => preloadPoster(poster_path)}
+              >
                 <div className="card">
                   <div className="card-info">
                     <h2>

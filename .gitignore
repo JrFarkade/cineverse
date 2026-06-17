@@ -24,7 +24,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Cloudflare Pages / Wrangler local files
+# Cloudflare Pages / Wrangler local files 
 .dev.vars
 .wrangler
 wrangler.toml

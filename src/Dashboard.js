@@ -288,11 +288,12 @@ const Dashboard = () => {
         const verifiedTV = await validateItems(validTV, "tv");
         setTrendingTV(verifiedTV.slice(0, 12));
 
-        // 3. Fetch Upcoming Releases (Filter future dates & sort ascending)
-        const uRes = await fetch(`${BASE_URL}/movie/upcoming?api_key=${API_KEY}`);
+        // 3. Fetch Upcoming Releases (Filter popular future releases)
+        const uRes = await fetch(`${BASE_URL}/discover/movie?api_key=${API_KEY}&primary_release_date.gte=${today}&sort_by=popularity.desc`);
         const uData = await uRes.json();
         const validUpcoming = (uData.results || [])
-          .filter((item) => item.id && item.title && item.poster_path && item.release_date && item.release_date > today)
+          .filter((item) => item.id && item.title && item.poster_path && item.release_date && item.release_date >= today)
+          .slice(0, 15)
           .sort((a, b) => new Date(a.release_date) - new Date(b.release_date));
         const verifiedUpcoming = await validateItems(validUpcoming, "movie");
         setUpcoming(verifiedUpcoming.slice(0, 12));
@@ -343,7 +344,7 @@ const Dashboard = () => {
 
   return (
     <div className="container" style={{ maxWidth: "1200px" }}>
-      <h2 style={{ textAlign: "center", marginBottom: "4rem", fontSize: "3.2rem", fontWeight: "700" }}>
+      <h2 className="hub-title">
         CineVerse Discovery Hub
       </h2>
       

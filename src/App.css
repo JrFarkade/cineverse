@@ -1942,6 +1942,22 @@ a:hover img {
   }
 }
 
+.hub-title {
+  text-align: center;
+  margin-bottom: 4rem;
+  font-size: 3.2rem;
+  font-weight: 700;
+  font-family: 'Lora', serif;
+  color: var(--text-clr);
+}
+
+@media (max-width: 768px) {
+  .hub-title {
+    font-size: 2rem !important;
+    margin-bottom: 2rem !important;
+  }
+}
+
 @media (max-width: 480px) {
   .detail-metadata-grid {
     grid-template-columns: 1fr !important;

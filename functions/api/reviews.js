@@ -81,6 +81,7 @@ export async function onRequest(context) {
         const reviewComments = rawComments
           .filter((comment) => comment.review_id === rev.id)
           .map((comment) => ({
+            id: comment.id,
             userId: comment.user_id,
             username: comment.username,
             avatar: comment.avatar,
@@ -119,7 +120,7 @@ export async function onRequest(context) {
   if (request.method === "POST") {
     try {
       const body = await request.json();
-      const { mediaId, mediaTitle, content, rating } = body;
+      const { mediaId, mediaTitle, content, rating, media } = body;
 
       if (!mediaId || !mediaTitle || !content || rating === undefined) {
         return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -143,10 +144,105 @@ export async function onRequest(context) {
         createdAt
       ).run();
 
+      // Synchronize to Watchlist
+      const docId = `${user.id}_${mediaId}`;
+      const existingWatchlist = await db.prepare("SELECT * FROM watchlist WHERE id = ?").bind(docId).first();
+      
+      if (existingWatchlist) {
+        await db.prepare("UPDATE watchlist SET personal_rating = ?, updated_at = ? WHERE id = ?")
+          .bind(Number(rating), new Date().toISOString(), docId)
+          .run();
+      } else if (media) {
+        const isAnime = media.genres?.some(g => g.id === 16) && media.original_language === "ja";
+        const isKdrama = !media.title && media.original_language === "ko";
+        const concreteType = isAnime ? "anime" : (isKdrama ? "kdrama" : (media.title ? "movie" : "tv"));
+        const originalType = media.title ? "movie" : "tv";
+        const title = media.title || media.name;
+        const posterPath = media.poster_path;
+        const updatedAt = new Date().toISOString();
+        const completionDate = new Date().toISOString().split("T")[0];
+        const totalEp = media.number_of_episodes || (media.title ? 1 : 12);
+
+        await db.prepare(
+          `INSERT OR REPLACE INTO watchlist (
+            id, user_id, media_id, title, type, original_type, poster_path, status, 
+            personal_rating, episodes_watched, total_episodes, seasons_completed, 
+            rewatch_count, updated_at, completion_date
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
+          docId,
+          user.id,
+          String(mediaId),
+          title,
+          concreteType,
+          originalType,
+          posterPath,
+          "Completed",
+          Number(rating),
+          originalType === "movie" ? 0 : totalEp,
+          totalEp,
+          0,
+          0,
+          updatedAt,
+          completionDate
+        ).run();
+      }
+
       await addSocialActivity(db, user.id, `reviewed **${mediaTitle}** and rated it **${rating}/10**`);
 
       return new Response(JSON.stringify({ success: true, reviewId }), {
         status: 201,
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }
+
+  // --- PUT REQUEST (Edit review) ---
+  if (request.method === "PUT") {
+    try {
+      const body = await request.json();
+      const { reviewId, content, rating } = body;
+
+      if (!reviewId || !content || rating === undefined) {
+        return new Response(JSON.stringify({ error: "Missing required fields" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      const existingReview = await db.prepare("SELECT * FROM reviews WHERE id = ?").bind(reviewId).first();
+      if (!existingReview) {
+        return new Response(JSON.stringify({ error: "Review not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      if (existingReview.user_id !== user.id) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      await db.prepare("UPDATE reviews SET content = ?, rating = ? WHERE id = ?").bind(content, Number(rating), reviewId).run();
+
+      // Synchronize to Watchlist
+      const docId = `${user.id}_${existingReview.media_id}`;
+      const existingWatchlist = await db.prepare("SELECT * FROM watchlist WHERE id = ?").bind(docId).first();
+      if (existingWatchlist) {
+        await db.prepare("UPDATE watchlist SET personal_rating = ?, updated_at = ? WHERE id = ?")
+          .bind(Number(rating), new Date().toISOString(), docId)
+          .run();
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
         headers: { "Content-Type": "application/json" }
       });
     } catch (err) {

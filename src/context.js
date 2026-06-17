@@ -285,15 +285,16 @@ export const AppProvider = ({ children }) => {
   };
 
   // 6. Review Actions
-  const addReview = async (mediaId, mediaTitle, content, rating) => {
+  const addReview = async (mediaId, media, content, rating) => {
     const res = await fetch("/api/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mediaId, mediaTitle, content, rating })
+      body: JSON.stringify({ mediaId, mediaTitle: media.title || media.name, media, content, rating })
     });
 
     if (res.ok) {
       fetchReviews();
+      fetchWatchlist();
       fetchActivities();
     }
   };
@@ -322,9 +323,45 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // 7. Admin Controls
+  // 7. Review & Comment Modification Controls
   const deleteReview = async (reviewId) => {
     const res = await fetch(`/api/reviews?id=${encodeURIComponent(reviewId)}`, {
+      method: "DELETE"
+    });
+
+    if (res.ok) {
+      fetchReviews();
+    }
+  };
+
+  const editReview = async (reviewId, content, rating) => {
+    const res = await fetch("/api/reviews", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviewId, content, rating })
+    });
+
+    if (res.ok) {
+      fetchReviews();
+      fetchWatchlist();
+      fetchActivities();
+    }
+  };
+
+  const editComment = async (commentId, text) => {
+    const res = await fetch("/api/reviews/comment", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentId, text })
+    });
+
+    if (res.ok) {
+      fetchReviews();
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    const res = await fetch(`/api/reviews/comment?id=${encodeURIComponent(commentId)}`, {
       method: "DELETE"
     });
 
@@ -394,6 +431,9 @@ export const AppProvider = ({ children }) => {
       likeReview,
       addCommentToReview,
       deleteReview,
+      editReview,
+      editComment,
+      deleteComment,
       getUserWatchlist,
       updateUserStatus,
       deleteUser,

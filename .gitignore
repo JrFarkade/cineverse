@@ -27,4 +27,5 @@ yarn-error.log*
 # Cloudflare Pages / Wrangler local files
 .dev.vars
 .wrangler
+wrangler.toml
 

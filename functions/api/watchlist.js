@@ -143,6 +143,18 @@ export async function onRequest(context) {
         completionDate
       ).run();
 
+      // Synchronize to Review
+      if (personalRating && Number(personalRating) > 0) {
+        const existingReview = await db.prepare("SELECT * FROM reviews WHERE user_id = ? AND media_id = ?")
+          .bind(user.id, String(media.id))
+          .first();
+        if (existingReview) {
+          await db.prepare("UPDATE reviews SET rating = ? WHERE id = ?")
+            .bind(Number(personalRating), existingReview.id)
+            .run();
+        }
+      }
+
       await addSocialActivity(db, user.id, `added **${title}** to **${status}**`);
 
       return new Response(JSON.stringify({ success: true }), {
@@ -212,6 +224,18 @@ export async function onRequest(context) {
 
       const queryStr = `UPDATE watchlist SET ${updates.join(", ")} WHERE id = ?`;
       await db.prepare(queryStr).bind(...bindings).run();
+
+      // Synchronize to Review
+      if (fields.personalRating !== undefined && Number(fields.personalRating) > 0) {
+        const existingReview = await db.prepare("SELECT * FROM reviews WHERE user_id = ? AND media_id = ?")
+          .bind(user.id, String(mediaId))
+          .first();
+        if (existingReview) {
+          await db.prepare("UPDATE reviews SET rating = ? WHERE id = ?")
+            .bind(Number(fields.personalRating), existingReview.id)
+            .run();
+        }
+      }
 
       if (fields.status && fields.status !== currentItem.status) {
         await addSocialActivity(db, user.id, `updated **${currentItem.title}** status to **${fields.status}**`);

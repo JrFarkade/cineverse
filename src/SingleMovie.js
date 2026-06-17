@@ -54,7 +54,11 @@ const SingleMovie = () => {
     reviews,
     addReview,
     likeReview,
-    addCommentToReview
+    addCommentToReview,
+    deleteReview,
+    editReview,
+    editComment,
+    deleteComment
   } = useGlobalContext();
 
   const watchlistItem = watchlist.find((item) => item.mediaId === String(id));
@@ -76,6 +80,15 @@ const SingleMovie = () => {
   // Image load tracking state
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Review Editing States
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [editingReviewText, setEditingReviewText] = useState("");
+  const [editingReviewRating, setEditingReviewRating] = useState(10);
+
+  // Comment Editing States
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+
   useEffect(() => {
     setImageLoaded(false);
   }, [id]);
@@ -86,11 +99,15 @@ const SingleMovie = () => {
       setPersonalRating(watchlistItem.personalRating || 0);
       setEpisodesWatched(watchlistItem.episodesWatched !== undefined ? String(watchlistItem.episodesWatched) : "0");
       setRewatchCount(watchlistItem.rewatchCount || 0);
+      if (watchlistItem.personalRating && watchlistItem.personalRating > 0) {
+        setReviewRating(watchlistItem.personalRating);
+      }
     } else {
       setStatus("Plan to Watch");
       setPersonalRating(0);
       setEpisodesWatched("0");
       setRewatchCount(0);
+      setReviewRating(10);
     }
     setEpisodesError("");
   }, [watchlistItem, id]);
@@ -185,7 +202,7 @@ const SingleMovie = () => {
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!reviewText.trim()) return;
-    await addReview(id, movie.title || movie.name, reviewText, reviewRating);
+    await addReview(id, movie, reviewText, reviewRating);
     setReviewText("");
   };
 
@@ -196,6 +213,20 @@ const SingleMovie = () => {
 
     await addCommentToReview(reviewId, commentText);
     setCommentInputs((prev) => ({ ...prev, [reviewId]: "" }));
+  };
+
+  const handleReviewEditSubmit = async (e, reviewId) => {
+    e.preventDefault();
+    if (!editingReviewText.trim()) return;
+    await editReview(reviewId, editingReviewText, editingReviewRating);
+    setEditingReviewId(null);
+  };
+
+  const handleCommentEditSubmit = async (e, commentId) => {
+    e.preventDefault();
+    if (!editingCommentText.trim()) return;
+    await editComment(commentId, editingCommentText);
+    setEditingCommentId(null);
   };
 
   const movieReviews = reviews.filter((r) => r.mediaId === String(id));
@@ -268,7 +299,16 @@ const SingleMovie = () => {
               {/* Personal Rating */}
               <div className="track-field">
                 <label>My Score (1-10)</label>
-                <select value={personalRating} onChange={(e) => setPersonalRating(e.target.value)}>
+                <select
+                  value={personalRating}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setPersonalRating(val);
+                    if (val > 0) {
+                      setReviewRating(val);
+                    }
+                  }}
+                >
                   <option value="0">Unrated</option>
                   {[...Array(10).keys()].map((n) => (
                     <option key={n + 1} value={n + 1}>⭐ {n + 1}</option>
@@ -344,7 +384,14 @@ const SingleMovie = () => {
             <h4 style={{ marginBottom: "1rem" }}>Write a Review</h4>
             <div className="review-rating-row">
               <label>My Review Score:</label>
-              <select value={reviewRating} onChange={(e) => setReviewRating(e.target.value)}>
+              <select
+                value={reviewRating}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setReviewRating(val);
+                  setPersonalRating(val);
+                }}
+              >
                 {[...Array(10).keys()].map((n) => (
                   <option key={n + 1} value={n + 1}>⭐ {n + 1}</option>
                 ))}
@@ -379,28 +426,129 @@ const SingleMovie = () => {
                   </span>
                 </div>
                 
-                <p className="review-text-content">{rev.content}</p>
+                {editingReviewId === rev.id ? (
+                  <form onSubmit={(e) => handleReviewEditSubmit(e, rev.id)} className="add-review-form" style={{ marginTop: "1rem" }}>
+                    <div className="review-rating-row">
+                      <label>Edit Review Score:</label>
+                      <select
+                        value={editingReviewRating}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setEditingReviewRating(val);
+                          setPersonalRating(val);
+                        }}
+                      >
+                        {[...Array(10).keys()].map((n) => (
+                          <option key={n + 1} value={n + 1}>⭐ {n + 1}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <textarea
+                      value={editingReviewText}
+                      onChange={(e) => setEditingReviewText(e.target.value)}
+                      rows="4"
+                      required
+                    ></textarea>
+                    <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+                      <button type="submit" className="submit-review-btn">Save</button>
+                      <button type="button" onClick={() => setEditingReviewId(null)} className="back-btn" style={{ padding: "0.5rem 1.5rem", fontSize: "1.3rem" }}>Cancel</button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <p className="review-text-content">{rev.content}</p>
 
-                <div className="review-actions-bar">
-                  <button 
-                    className={`like-btn-style ${rev.likes?.includes(currentUser?.uid) ? "liked" : ""}`}
-                    onClick={() => likeReview(rev.id)}
-                    disabled={!currentUser}
-                  >
-                    👍 Like ({rev.likes?.length || 0})
-                  </button>
-                </div>
+                    <div className="review-actions-bar">
+                      <button 
+                        className={`like-btn-style ${rev.likes?.includes(currentUser?.uid) ? "liked" : ""}`}
+                        onClick={() => likeReview(rev.id)}
+                        disabled={!currentUser}
+                      >
+                        👍 Like ({rev.likes?.length || 0})
+                      </button>
+                      {currentUser && (rev.userId === currentUser.uid || currentUser.role === "admin") && (
+                        <div style={{ display: "flex", gap: "1rem" }}>
+                          {rev.userId === currentUser.uid && (
+                            <button 
+                              className="btn-edit-action"
+                              onClick={() => {
+                                setEditingReviewId(rev.id);
+                                setEditingReviewText(rev.content);
+                                setEditingReviewRating(rev.rating);
+                              }}
+                            >
+                              ✏️ Edit
+                            </button>
+                          )}
+                          <button 
+                            className="btn-delete-action"
+                            onClick={() => {
+                              if (window.confirm("Are you sure you want to delete this review?")) {
+                                deleteReview(rev.id);
+                              }
+                            }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 {/* Comments block */}
                 <div className="comments-block">
                   <h5>Comments ({rev.comments?.length || 0})</h5>
                   
                   {rev.comments && rev.comments.map((c, idx) => (
-                    <div className="comment-item" key={idx}>
+                    <div className="comment-item" key={c.id || idx}>
                       <img src={c.avatar} alt={c.username} className="comment-avatar" />
-                      <div className="comment-details">
+                      <div className="comment-details" style={{ width: "100%" }}>
                         <span className="comment-user">{c.username}</span>
-                        <p className="comment-text">{c.text}</p>
+                        {editingCommentId === c.id ? (
+                          <form onSubmit={(e) => handleCommentEditSubmit(e, c.id)} style={{ display: "flex", gap: "1rem", marginTop: "0.5rem", width: "100%" }}>
+                            <input
+                              type="text"
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              required
+                              style={{ flexGrow: 1, padding: "0.5rem 1rem", fontSize: "1.3rem" }}
+                            />
+                            <button type="submit" style={{ padding: "0.3rem 1rem", fontSize: "1.2rem", background: "#2ecc71", color: "white", border: "none", borderRadius: "0.4rem", cursor: "pointer" }}>Save</button>
+                            <button type="button" onClick={() => setEditingCommentId(null)} style={{ padding: "0.3rem 1rem", fontSize: "1.2rem", background: "#95a5a6", color: "white", border: "none", borderRadius: "0.4rem", cursor: "pointer" }}>Cancel</button>
+                          </form>
+                        ) : (
+                          <>
+                            <p className="comment-text">{c.text}</p>
+                            {currentUser && (c.userId === currentUser.uid || currentUser.role === "admin") && (
+                              <div style={{ display: "flex", gap: "1rem", marginTop: "0.3rem" }}>
+                                {c.userId === currentUser.uid && (
+                                  <button 
+                                    className="btn-edit-action"
+                                    style={{ fontSize: "1.1rem", padding: "0.1rem 0.4rem" }}
+                                    onClick={() => {
+                                      setEditingCommentId(c.id);
+                                      setEditingCommentText(c.text);
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                <button 
+                                  className="btn-delete-action"
+                                  style={{ fontSize: "1.1rem", padding: "0.1rem 0.4rem" }}
+                                  onClick={() => {
+                                    if (window.confirm("Are you sure you want to delete this comment?")) {
+                                      deleteComment(c.id);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -423,6 +571,36 @@ const SingleMovie = () => {
           )}
         </div>
       </div>
+      {/* Sleek inline styles for Edit/Delete buttons */}
+      <style>{`
+        .btn-edit-action, .btn-delete-action {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 1.2rem;
+          font-weight: 600;
+          padding: 0.3rem 0.6rem;
+          border-radius: 0.4rem;
+          transition: all 0.2s;
+        }
+        .btn-edit-action {
+          color: #3498db;
+        }
+        .btn-edit-action:hover {
+          background: rgba(52, 152, 219, 0.1);
+        }
+        .btn-delete-action {
+          color: #e74c3c;
+        }
+        .btn-delete-action:hover {
+          background: rgba(231, 76, 60, 0.1);
+        }
+        .comment-details {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      `}</style>
     </section>
   );
 };

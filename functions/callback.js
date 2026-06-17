@@ -131,4 +131,3 @@ export async function onRequestGet(context) {
     return Response.redirect(`${url.origin}/auth?error=callback_error`, 302);
   }
 }
- 

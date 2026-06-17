@@ -1,5 +1,7 @@
 # CineVerse: Media Tracking and Discovery Platform
 
+**Live Deployment:** [https://cineverse-6st.pages.dev/](https://cineverse-6st.pages.dev/)
+
 CineVerse is a media tracking and discovery web application, similar to Letterboxd, AniList, or MyAnimeList. It lets users search for movies, TV series, K-dramas, and anime, manage their watchlist progress, write reviews, interact with comments, and follow other users to see their updates.
 
 Originally built on Firebase, this project has been fully migrated to a serverless **Cloudflare-native stack** utilizing Cloudflare Pages, Cloudflare D1 (SQLite), and Cloudflare R2 (Object Storage) for improved performance, simpler architecture, and smaller bundle sizes.

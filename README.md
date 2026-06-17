@@ -1,67 +1,76 @@
 # CineVerse: Media Tracking and Discovery Platform
 
-CineVerse is a media tracking and discovery platform similar to MyAnimeList, Letterboxd, or IMDb. It allows users to search for movies, TV shows, and anime, track their watching progress, write reviews, and follow other users to see their activities.
+CineVerse is a media tracking and discovery web application, similar to Letterboxd, AniList, or MyAnimeList. It lets users search for movies, TV series, K-dramas, and anime, manage their watchlist progress, write reviews, interact with comments, and follow other users to see their updates.
 
-This project was built using React.js for the frontend, Firebase (Auth + Firestore) for cloud data syncing, and LocalStorage as a fallback database mode for zero-configuration testing.
+Originally built on Firebase, this project has been fully migrated to a serverless **Cloudflare-native stack** utilizing Cloudflare Pages, Cloudflare D1 (SQLite), and Cloudflare R2 (Object Storage) for improved performance, simpler architecture, and smaller bundle sizes.
+
+---
 
 ## 🚀 Key Features
 
-* **Discovery Hub**: Shows trending movies, trending TV shows, upcoming releases, and currently airing anime (via MyAnimeList Jikan API) with smooth carousel scrolling.
-* **Personal Watchlists**: Organize movies/TV shows into custom lists: *Watching*, *Completed*, *On Hold*, *Dropped*, and *Plan to Watch*.
-* **Watch Progress Tracking**: Track watched episode counts, rewatches, ratings (1-10), and completion dates.
-* **Community Reviews & Social Hub**: Write reviews, like reviews, comment on them, and search/follow other users to view their activity feed.
-* **User Accounts**: Registration and login using Firebase Auth, with profile pages showing watch stats (hours watched, ratings distribution).
-* **Multi-Search Routing**: Seamlessly searches both movies and TV shows and routes to the correct details pages automatically.
-* **Hybrid Storage**: Syncs with Firestore if Firebase API keys are provided; otherwise, it falls back to browser LocalStorage.
+* **Discovery Hub**: Find what to watch with horizontal carousels showing Trending Movies, Trending TV Shows, Upcoming Releases, and seasonal Top Airing Anime (fetched dynamically from the Jikan MAL API).
+* **Track Progress**: Save titles into your personal library with custom statuses (*Watching*, *Completed*, *On Hold*, *Dropped*, *Plan to Watch*). Track episode counts, rewatch counts, and completion dates.
+* **Master Rating Synchronization**: 
+  - Library ratings and reviews use a single unified score.
+  - Updating a score in your library updates your review, and editing a review score updates your library.
+  - Writing a review for a title not in your library automatically adds it to your watchlist as `Completed` with that rating.
+* **Community Social Feed**: Read and write reviews, like reviews, write comments, and follow other users in a directory to see their live updates.
+* **User Profile & Stats**: View library stats such as total hours watched, total titles, episode count breakdown, and your mean rating score.
+* **Mobile-First Responsive UI**: Styled with responsive vanilla CSS. Features a bottom navigation bar on mobile (≤ 768px) with custom SVG icons and thumb-friendly touch targets.
+* **Admin Control Center**: Admins can suspend or delete user accounts, see system-wide stats, and moderate community reviews directly.
+
+---
 
 ## 🛠️ Tech Stack
 
-* **Frontend**: React (v18), React Router (v6), HTML5, Vanilla CSS3 Custom variables.
+* **Frontend**: React.js (v18), React Router (v6), Vanilla CSS3.
 * **APIs**: TMDB (The Movie Database) API, Jikan (MyAnimeList) API.
-* **Backend (BaaS)**: Firebase Authentication and Cloud Firestore (optional).
-* **Local Fallback**: LocalStorage.
+* **Backend Functions**: Cloudflare Pages Functions (Serverless endpoints).
+* **Database**: Cloudflare D1 (Serverless SQLite).
+* **Object Storage**: Cloudflare R2 (for user avatar uploads).
+* **Authentication**: Native PBKDF2 cryptography for secure password hashing and JWT-based session tokens stored in secure, HttpOnly cookies. Supports Google OAuth.
 
-## 📂 File Structure
+---
 
-* `src/App.js` - Routing configuration.
-* `src/context.js` - Global states (Auth, watchlist, review hooks, social logs).
-* `src/Dashboard.js` - Discovery hub sections and scrollable carousels.
-* `src/SingleMovie.js` - Dynamic details view, progress log panel, and comments.
-* `src/Watchlist.js` - Categorized personal watchlist panel.
-* `src/Profile.js` - User stats calculation (total hours, ratings average).
-* `src/SocialFeed.js` - Community updates feed and follow directory.
-* `src/Auth.js` - Register and login form module.
-* `src/firebase.js` - Firebase client configs.
+## 📂 Project Structure
+
+* `/functions/api/` - Backend API endpoints.
+  * `auth/` - Registration, login, Google OAuth redirect, and session check handlers.
+  * `profile/` - Biography and R2 avatar file upload handlers.
+  * `reviews/` - Review creation, likes, comments, edits, and deletions.
+  * `watchlist.js` - Watchlist CRUD operations.
+* `/src/` - Frontend React application.
+  * `Navbar.js` - Responsive navbar (desktop top header vs mobile bottom bar).
+  * `Dashboard.js` - Discovery hub sections with scrollable carousels.
+  * `SingleMovie.js` - Media details view, rating/tracking panels, and comment section.
+  * `Watchlist.js` - Personal library views with scrollable category filters.
+  * `Profile.js` - User stats calculation and profile editing forms.
+  * `SocialFeed.js` - Community updates feed and follow directory.
+  * `Auth.js` - Register and login form module.
+  * `AdminDashboard.js` - Admin system summary and user moderation hub.
+
+---
 
 ## ⚙️ Getting Started
 
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed.
-
-### Setup and Running
-1. Clone this project folder.
-2. In the folder terminal, run:
+### Setup and Installation
+1. Clone the project repository.
+2. In the project root folder, install dependencies:
    ```bash
    npm install
    ```
-3. (Optional) Create a `.env` file in the root directory to customize API keys:
-   ```env
-   REACT_APP_TMDB_KEY=your_tmdb_api_key
-   REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-   REACT_APP_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
-   REACT_APP_FIREBASE_PROJECT_ID=your_firebase_project_id
-   REACT_APP_FIREBASE_STORAGE_BUCKET=your_firebase_bucket
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   REACT_APP_FIREBASE_APP_ID=your_app_id
-   ```
-   *Note: If Firebase credentials are not provided, the app will run in LocalStorage mode automatically.*
 
-4. Launch the local dev server:
+### Local Development Environment
+1. To run the backend functions, D1 database, and R2 storage locally, make sure you have wrangler installed and run:
    ```bash
-   npm start
+   npx wrangler pages dev build --port 3001
    ```
-5. Build for production (optional):
-   ```bash
-   npm run build
-   ```
- 
+2. The dev server uses the local SQLite cache from the `.wrangler` folder and runs on `http://localhost:3001`.
+3. Set your TMDB API keys or Google OAuth secrets in a `.dev.vars` file in the root directory if needed.
+
+### Production Build
+To create an optimized production build:
+```bash
+npm run build
+```
+The resulting build directory is located in `/build` and is ready for automated deployment via Cloudflare Pages.

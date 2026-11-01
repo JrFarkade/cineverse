@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { useGlobalContext } from "./context";
+import QuickTrackButton from "./QuickTrackButton";
+import QuickTrackModal from "./QuickTrackModal";
 
 const API_KEY = process.env.REACT_APP_TMDB_KEY || "96f53db154f4df124746c30c9823648c";
 const BASE_URL = "https://api.tmdb.org/3";
 const placeholderImg = "https://via.placeholder.com/300x450?text=No+Poster";
 
 // Reusable Carousel Section with dynamic scroll indicators (hiding/showing arrows on boundaries)
-const CarouselSection = ({ title, items, mediaType, carouselId }) => {
+const CarouselSection = ({ title, items, mediaType, carouselId, onOpenTrackModal }) => {
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
   const carouselRef = useRef(null);
@@ -100,7 +102,13 @@ const CarouselSection = ({ title, items, mediaType, carouselId }) => {
                 onFocus={() => preloadPoster(item.poster_path)}
               >
                 <div className="dashboard-card">
-                  <img src={posterUrl} alt={displayTitle} />
+                  <div className="dashboard-poster-wrap">
+                    <img src={posterUrl} alt={displayTitle} />
+                    <QuickTrackButton
+                      mediaItem={{ ...item, media_type: concreteType }}
+                      onOpenModal={onOpenTrackModal}
+                    />
+                  </div>
                   <div className="dashboard-card-info">
                     <h4>{shortTitle}</h4>
                     <div className="card-badge-row">
@@ -154,6 +162,7 @@ const Dashboard = () => {
   } = useGlobalContext();
 
   const [loading, setLoading] = useState(!dashboardLoaded);
+  const [trackModalItem, setTrackModalItem] = useState(null);
 
   // Helper to validate items and query details to make sure they load successfully (prevent 404s)
   const validateItems = async (items, type) => {
@@ -348,10 +357,41 @@ const Dashboard = () => {
         CineVerse Discovery Hub
       </h2>
       
-      <CarouselSection title="Trending Movies This Week" items={trendingMovies} mediaType="movie" carouselId="carousel-movies" />
-      <CarouselSection title="Trending TV Shows" items={trendingTV} mediaType="tv" carouselId="carousel-tv" />
-      <CarouselSection title="Upcoming Movie Releases" items={upcoming} mediaType="movie" carouselId="carousel-upcoming" />
-      <CarouselSection title="Top Airing Anime" items={airingAnime} mediaType="tv" carouselId="carousel-anime" />
+      <CarouselSection 
+        title="Trending Movies This Week" 
+        items={trendingMovies} 
+        mediaType="movie" 
+        carouselId="carousel-movies" 
+        onOpenTrackModal={setTrackModalItem} 
+      />
+      <CarouselSection 
+        title="Trending TV Shows" 
+        items={trendingTV} 
+        mediaType="tv" 
+        carouselId="carousel-tv" 
+        onOpenTrackModal={setTrackModalItem} 
+      />
+      <CarouselSection 
+        title="Upcoming Movie Releases" 
+        items={upcoming} 
+        mediaType="movie" 
+        carouselId="carousel-upcoming" 
+        onOpenTrackModal={setTrackModalItem} 
+      />
+      <CarouselSection 
+        title="Top Airing Anime" 
+        items={airingAnime} 
+        mediaType="tv" 
+        carouselId="carousel-anime" 
+        onOpenTrackModal={setTrackModalItem} 
+      />
+
+      {/* Quick Track Modal */}
+      <QuickTrackModal
+        isOpen={Boolean(trackModalItem)}
+        onClose={() => setTrackModalItem(null)}
+        mediaItem={trackModalItem}
+      />
     </div>
   );
 };

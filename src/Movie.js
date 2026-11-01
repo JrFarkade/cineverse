@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useGlobalContext } from "./context";
+import QuickTrackButton from "./QuickTrackButton";
+import QuickTrackModal from "./QuickTrackModal";
 
 const placeholderImg = "https://via.placeholder.com/300x450?text=No+Poster";
 
 const Movie = () => {
   const { movie, isLoading } = useGlobalContext();
+  const [trackModalItem, setTrackModalItem] = useState(null);
 
   const preloadPoster = (posterPath) => {
     if (!posterPath) return;
@@ -51,7 +54,13 @@ const Movie = () => {
                         ? `${movieName}...`
                         : movieName}
                     </h2>
-                    <img src={moviePoster} alt={displayTitle || "media"} />
+                    <div className="card-poster-wrap">
+                      <img src={moviePoster} alt={displayTitle || "media"} />
+                      <QuickTrackButton
+                        mediaItem={{ ...curMovieElem, media_type: concreteType }}
+                        onOpenModal={setTrackModalItem}
+                      />
+                    </div>
                   </div>
                 </div>
               </NavLink>
@@ -59,6 +68,13 @@ const Movie = () => {
           })}
         </div>
       </section>
+
+      {/* Quick Track Modal */}
+      <QuickTrackModal
+        isOpen={Boolean(trackModalItem)}
+        onClose={() => setTrackModalItem(null)}
+        mediaItem={trackModalItem}
+      />
     </>
   );
 };

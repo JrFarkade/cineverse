@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, NavLink, useNavigate } from "react-router-dom";
+import QuickTrackButton from "./QuickTrackButton";
+import QuickTrackModal from "./QuickTrackModal";
 
 const API_KEY = process.env.REACT_APP_TMDB_KEY || "96f53db154f4df124746c30c9823648c";
 const API_URL = "https://api.tmdb.org/3";
@@ -15,6 +17,7 @@ const PersonDetail = () => {
   const [isError, setIsError] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [showFullBio, setShowFullBio] = useState(false);
+  const [trackModalItem, setTrackModalItem] = useState(null);
 
   useEffect(() => {
     const fetchPerson = async () => {
@@ -242,6 +245,10 @@ const PersonDetail = () => {
                       <span className={`filmography-type-pill ${concreteType}`}>
                         {concreteType === "tv" ? "TV" : "Movie"}
                       </span>
+                      <QuickTrackButton
+                        mediaItem={{ ...item, media_type: concreteType }}
+                        onOpenModal={setTrackModalItem}
+                      />
                     </div>
 
                     <div className="filmography-card-info">
@@ -260,6 +267,13 @@ const PersonDetail = () => {
           </div>
         )}
       </div>
+
+      {/* Quick Track Modal */}
+      <QuickTrackModal
+        isOpen={Boolean(trackModalItem)}
+        onClose={() => setTrackModalItem(null)}
+        mediaItem={trackModalItem}
+      />
     </div>
   );
 };

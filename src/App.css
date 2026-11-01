@@ -71,6 +71,28 @@ img {
   align-items: center;
 }
 
+.card-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.card-info h2 {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.8rem;
+  transition: all 0.3s linear;
+}
+
+.card-info img {
+  display: block;
+  margin: 0 auto;
+  transition: all 0.3s linear;
+}
+
 /* search css  */
 .search-section {
   margin: auto;
@@ -189,7 +211,6 @@ a:hover {
 a:hover h2 {
   color: var(--bg-clr);
   transform: translateY(-1.5rem);
-  display: inline-block;
 }
 
 a:hover img {
@@ -855,10 +876,16 @@ a:hover img {
   border-bottom: 1px solid #f2f4fc;
 }
 .timeline-avatar {
-  width: 5.5rem;
-  height: 5.5rem;
-  border-radius: 50%;
-  object-fit: cover;
+  width: 5.2rem !important;
+  height: 5.2rem !important;
+  min-width: 5.2rem !important;
+  max-width: 5.2rem !important;
+  aspect-ratio: 1 / 1 !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  flex-shrink: 0 !important;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 .timeline-content {
   flex-grow: 1;
@@ -883,6 +910,95 @@ a:hover img {
 }
 .timeline-desc strong {
   color: var(--text-clr);
+}
+
+/* Feed Scope Filter Tabs */
+.feed-scope-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+.feed-scope-btn {
+  padding: 0.6rem 1.6rem;
+  border-radius: 2rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.feed-scope-btn:hover {
+  background: #f8fafc;
+  color: #1e293b;
+}
+.feed-scope-btn.active {
+  background: var(--text-clr);
+  color: white;
+  border-color: var(--text-clr);
+}
+
+/* Modern Activity Badges (Option A) */
+.activity-phrase {
+  font-size: 1.45rem;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  line-height: 1.6;
+}
+.activity-media-title {
+  color: var(--text-clr);
+  font-weight: 600;
+}
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.9rem;
+  border-radius: 100px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.status-badge.status-completed {
+  background: rgba(46, 204, 113, 0.15);
+  color: #27ae60;
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+.status-badge.status-watching {
+  background: rgba(52, 152, 219, 0.15);
+  color: #2980b9;
+  border: 1px solid rgba(52, 152, 219, 0.3);
+}
+.status-badge.status-plan {
+  background: rgba(149, 165, 166, 0.15);
+  color: #7f8c8d;
+  border: 1px solid rgba(149, 165, 166, 0.3);
+}
+.status-badge.status-on-hold {
+  background: rgba(241, 196, 15, 0.15);
+  color: #b78103;
+  border: 1px solid rgba(241, 196, 15, 0.3);
+}
+.status-badge.status-dropped {
+  background: rgba(231, 76, 60, 0.15);
+  color: #c0392b;
+  border: 1px solid rgba(231, 76, 60, 0.3);
+}
+.status-badge.status-rating {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.status-badge.status-default {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
 }
 .directory-search-input {
   padding: 1rem 1.5rem;

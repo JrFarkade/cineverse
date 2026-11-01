@@ -10,7 +10,7 @@ async function addSocialActivity(db, userId, description) {
     ).bind(
       activityId,
       userId,
-      `**${username}** ${description}`,
+      description,
       timestamp
     ).run();
   } catch (err) {

@@ -81,9 +81,10 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const fetchActivities = async () => {
+  const fetchActivities = async (scope = "personal") => {
     try {
-      const res = await fetch("/api/activities");
+      const url = scope === "community" ? "/api/activities?scope=community" : "/api/activities";
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setActivitiesList(data);
@@ -437,6 +438,7 @@ export const AppProvider = ({ children }) => {
       getUserWatchlist,
       updateUserStatus,
       deleteUser,
+      fetchActivities,
       getSocialFeed,
       trendingMovies,
       setTrendingMovies,

@@ -2081,6 +2081,681 @@ a:hover img {
   }
 }
 
+/* ========================================================
+   WHERE TO WATCH (STREAMING PROVIDERS)
+   ======================================================== */
+.providers-section {
+  background: white;
+  border-radius: 2rem;
+  padding: 3.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 4rem;
+}
+
+.providers-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 1.5rem;
+}
+
+.providers-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.section-heading {
+  font-family: 'Lora', serif;
+  font-size: 2.4rem;
+  color: var(--text-clr);
+  margin: 0;
+}
+
+.justwatch-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 100px;
+  border: 1px solid #e2e8f0;
+}
+
+.country-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.country-select-wrap label {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.country-dropdown {
+  padding: 0.6rem 1.4rem;
+  border-radius: 100px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  font-size: 1.35rem;
+  color: #1e293b;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.country-dropdown:focus {
+  border-color: var(--text-clr);
+}
+
+.no-providers-message {
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 1.2rem;
+  color: #64748b;
+}
+
+.no-providers-message p {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #334155;
+}
+
+.no-providers-sub {
+  font-size: 1.3rem;
+  color: #94a3b8;
+}
+
+.providers-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.provider-category-title {
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1.2rem;
+}
+
+.provider-logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.provider-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.8rem !important;
+  padding: 1rem 1.4rem !important;
+  border-radius: 1.2rem !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  text-decoration: none !important;
+  margin-top: 0 !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer;
+  width: 10.5rem;
+}
+
+.provider-item:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  background: white !important;
+  border-color: #cbd5e1 !important;
+}
+
+.provider-logo {
+  width: 4.8rem !important;
+  height: 4.8rem !important;
+  min-width: 4.8rem !important;
+  max-width: 4.8rem !important;
+  border-radius: 1rem !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.provider-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* ========================================================
+   CAST & CHARACTERS SECTION
+   ======================================================== */
+.cast-section {
+  background: white;
+  border-radius: 2rem;
+  padding: 3.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 4rem;
+}
+
+.cast-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 1.5rem;
+}
+
+.cast-count-badge {
+  background: rgba(74, 92, 108, 0.1);
+  color: var(--text-clr);
+  font-size: 1.25rem;
+  font-weight: 600;
+  padding: 0.3rem 1rem;
+  border-radius: 100px;
+}
+
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 2rem;
+}
+
+.cast-card-link {
+  display: block !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  text-decoration: none !important;
+  text-align: left !important;
+}
+
+.cast-card-link:hover {
+  background: transparent !important;
+}
+
+.cast-card {
+  background: #f8fafc;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cast-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.cast-photo-wrap {
+  position: relative;
+  width: 100%;
+  height: 21rem;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.cast-photo-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  max-height: unset !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transition: transform 0.3s ease !important;
+}
+
+.cast-card:hover .cast-photo-wrap img {
+  transform: scale(1.05);
+}
+
+.cast-role-pill {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.cast-role-pill.lead {
+  background: #3b82f6;
+  color: white;
+}
+
+.cast-role-pill.supporting {
+  background: #10b981;
+  color: white;
+}
+
+.cast-role-pill.cameo {
+  background: rgba(30, 41, 59, 0.75);
+  color: white;
+}
+
+.cast-card-info {
+  padding: 1.2rem 1.4rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cast-name {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cast-card-link:hover .cast-name {
+  color: #2563eb;
+}
+
+.cast-character {
+  font-size: 1.25rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.view-all-cast-btn {
+  padding: 1rem 2.8rem;
+  background: white;
+  border: 1.5px solid var(--text-clr);
+  color: var(--text-clr);
+  border-radius: 100px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-all-cast-btn:hover {
+  background: var(--text-clr);
+  color: white;
+}
+
+/* ========================================================
+   PERSON / ACTOR PROFILE & FILMOGRAPHY
+   ======================================================== */
+.person-detail-container {
+  max-width: 130rem;
+  margin: 3rem auto 6rem;
+  padding: 0 2rem;
+}
+
+.person-hero-card {
+  display: grid;
+  grid-template-columns: 32rem 1fr;
+  gap: 4rem;
+  background: white;
+  border-radius: 2rem;
+  padding: 4rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 4rem;
+}
+
+.person-photo-wrapper {
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: #f1f5f9;
+  height: 44rem;
+}
+
+.person-photo {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  max-height: unset !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.person-info-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.person-name {
+  font-family: 'Lora', serif;
+  font-size: 3.6rem;
+  color: var(--text-clr);
+  margin-bottom: 1.5rem;
+}
+
+.person-meta-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.person-meta-badge {
+  padding: 0.4rem 1.2rem;
+  border-radius: 100px;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.department-badge {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.credits-badge {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.person-meta-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  font-size: 1.45rem;
+  color: #475569;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.person-meta-details p strong {
+  color: #1e293b;
+}
+
+.person-biography h3 {
+  font-family: 'Lora', serif;
+  font-size: 2rem;
+  color: #1e293b;
+  margin-bottom: 1rem;
+}
+
+.bio-text {
+  font-size: 1.45rem;
+  line-height: 1.7;
+  color: #334155;
+  white-space: pre-line;
+}
+
+.bio-toggle-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 1.35rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.8rem;
+  padding: 0;
+}
+
+.bio-toggle-btn:hover {
+  text-decoration: underline;
+}
+
+/* Filmography Grid & Filters */
+.filmography-section {
+  background: white;
+  border-radius: 2rem;
+  padding: 4rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.filmography-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 2rem;
+}
+
+.filmography-title {
+  font-family: 'Lora', serif;
+  font-size: 2.6rem;
+  color: var(--text-clr);
+  margin: 0;
+}
+
+.filmography-tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.filmography-tab-btn {
+  padding: 0.7rem 1.8rem;
+  border-radius: 100px;
+  font-size: 1.35rem;
+  font-weight: 600;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filmography-tab-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.filmography-tab-btn.active {
+  background: var(--text-clr);
+  color: white;
+  border-color: var(--text-clr);
+}
+
+.filmography-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 2.5rem;
+}
+
+.filmography-card-link {
+  display: block !important;
+  margin-top: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  text-decoration: none !important;
+  text-align: left !important;
+}
+
+.filmography-card-link:hover {
+  background: transparent !important;
+}
+
+.filmography-card {
+  background: #f8fafc;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.filmography-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.filmography-poster-wrap {
+  position: relative;
+  width: 100%;
+  height: 26rem;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.filmography-poster-wrap img {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  max-height: unset !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  transition: transform 0.3s ease !important;
+}
+
+.filmography-card:hover .filmography-poster-wrap img {
+  transform: scale(1.05);
+}
+
+.filmography-rating-badge {
+  position: absolute;
+  top: 0.8rem;
+  left: 0.8rem;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fbbf24;
+  font-size: 1.15rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 100px;
+}
+
+.filmography-type-pill {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 100px;
+  text-transform: uppercase;
+  color: white;
+}
+
+.filmography-type-pill.movie {
+  background: #3b82f6;
+}
+
+.filmography-type-pill.tv {
+  background: #8b5cf6;
+}
+
+.filmography-card-info {
+  padding: 1.4rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.filmography-card-year {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.4rem;
+}
+
+.filmography-card-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.4rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filmography-card-link:hover .filmography-card-title {
+  color: #2563eb;
+}
+
+.filmography-card-character {
+  font-size: 1.25rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 998px) {
+  .person-hero-card {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .person-photo-wrapper {
+    height: 38rem;
+    max-width: 28rem;
+    margin: 0 auto;
+  }
+  .cast-grid {
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 1.5rem;
+  }
+  .cast-photo-wrap {
+    height: 18rem;
+  }
+  .filmography-grid {
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 1.5rem;
+  }
+  .filmography-poster-wrap {
+    height: 21rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .providers-section, .cast-section, .filmography-section, .person-hero-card {
+    padding: 2.5rem 1.5rem !important;
+    border-radius: 1.5rem !important;
+  }
+  .provider-item {
+    width: 9rem;
+    padding: 0.8rem 0.6rem !important;
+  }
+  .provider-logo {
+    width: 4rem !important;
+    height: 4rem !important;
+    min-width: 4rem !important;
+  }
+  .person-name {
+    font-size: 2.8rem;
+  }
+}
+
 
 
  

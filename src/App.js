@@ -9,6 +9,7 @@ import Watchlist from "./Watchlist";
 import SocialFeed from "./SocialFeed";
 import Profile from "./Profile";
 import AdminDashboard from "./AdminDashboard";
+import PersonDetail from "./PersonDetail";
 import ScrollToTop from "./ScrollToTop";
 import { useGlobalContext } from "./context";
 import "./App.css";
@@ -44,6 +45,7 @@ const App = () => {
         <Route path="/social" element={<SocialFeed />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/person/:id" element={<PersonDetail />} />
         <Route path="/:type/:id" element={<SingleMovie />} />
       </Routes>
     </>

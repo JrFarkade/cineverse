@@ -5,6 +5,18 @@ import { useGlobalContext } from "./context";
 const API_KEY = process.env.REACT_APP_TMDB_KEY || "96f53db154f4df124746c30c9823648c";
 const API_URL = "https://api.tmdb.org/3";
 
+const AVAILABLE_COUNTRIES = [
+  { code: "IN", name: "India 🇮🇳" },
+  { code: "US", name: "United States 🇺🇸" },
+  { code: "GB", name: "United Kingdom 🇬🇧" },
+  { code: "CA", name: "Canada 🇨🇦" },
+  { code: "AU", name: "Australia 🇦🇺" },
+  { code: "JP", name: "Japan 🇯🇵" },
+  { code: "KR", name: "South Korea 🇰🇷" },
+  { code: "DE", name: "Germany 🇩🇪" },
+  { code: "FR", name: "France 🇫🇷" },
+];
+
 const SingleMovie = () => {
   const { type, id } = useParams();
   const location = useLocation();
@@ -13,16 +25,18 @@ const SingleMovie = () => {
   // Initialize movie state with passed basic details if available
   const [movie, setMovie] = useState(location.state?.mediaDetails || null);
   const [isError, setIsError] = useState({ show: "false", msg: "" });
+  const [selectedCountry, setSelectedCountry] = useState("IN");
+  const [showAllCast, setShowAllCast] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
-      // If we already have the full details (e.g. genres is populated), we don't need to load again
-      if (movie && movie.genres && (movie.runtime || movie.number_of_episodes)) {
+      // If we already have full details including credits and watch providers, don't refetch
+      if (movie && movie.genres && (movie.runtime || movie.number_of_episodes) && movie.credits && movie["watch/providers"]) {
         return;
       }
 
       try {
-        const res = await fetch(`${API_URL}/${type}/${id}?api_key=${API_KEY}`);
+        const res = await fetch(`${API_URL}/${type}/${id}?api_key=${API_KEY}&append_to_response=credits,watch/providers`);
         if (res.ok) {
           const data = await res.json();
           setMovie((prev) => ({ ...prev, ...data }));
@@ -278,7 +292,170 @@ const SingleMovie = () => {
         </div>
       </div>
 
-      {/* 2. Track & Organize Panel */}
+      {/* 2. Where to Watch (Streaming Providers via JustWatch) */}
+      <div className="providers-section">
+        <div className="providers-header-row">
+          <div className="providers-title-wrap">
+            <h3 className="section-heading">Where to Watch</h3>
+            <span className="justwatch-badge">Verified Streaming Availability</span>
+          </div>
+
+          <div className="country-select-wrap">
+            <label htmlFor="country-select">Region:</label>
+            <select
+              id="country-select"
+              value={selectedCountry}
+              onChange={(e) => setSelectedCountry(e.target.value)}
+              className="country-dropdown"
+            >
+              {AVAILABLE_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {(() => {
+          const countryData = movie["watch/providers"]?.results?.[selectedCountry];
+          const countryObj = AVAILABLE_COUNTRIES.find((c) => c.code === selectedCountry);
+          const countryName = countryObj ? countryObj.name : selectedCountry;
+
+          if (!countryData || (!countryData.flatrate && !countryData.rent && !countryData.buy)) {
+            return (
+              <div className="no-providers-message">
+                <p>No verified streaming availability listed for <strong>{countryName}</strong>.</p>
+                <span className="no-providers-sub">Select another region above to view international availability.</span>
+              </div>
+            );
+          }
+
+          const { flatrate = [], rent = [], buy = [], link } = countryData;
+
+          // Deduplicate rent and buy items
+          const seenRentBuy = new Set();
+          const rentBuyList = [...rent, ...buy].filter((p) => {
+            if (seenRentBuy.has(p.provider_id)) return false;
+            seenRentBuy.add(p.provider_id);
+            return true;
+          });
+
+          return (
+            <div className="providers-content">
+              {flatrate.length > 0 && (
+                <div className="provider-category">
+                  <h4 className="provider-category-title">Stream Subscription</h4>
+                  <div className="provider-logos-row">
+                    {flatrate.map((provider) => (
+                      <a
+                        href={link || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        key={provider.provider_id}
+                        className="provider-item"
+                        title={`Stream on ${provider.provider_name} (Opens verified JustWatch page)`}
+                      >
+                        <img
+                          src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
+                          alt={provider.provider_name}
+                          className="provider-logo"
+                        />
+                        <span className="provider-name">{provider.provider_name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {rentBuyList.length > 0 && (
+                <div className="provider-category">
+                  <h4 className="provider-category-title">Rent / Buy</h4>
+                  <div className="provider-logos-row">
+                    {rentBuyList.map((provider) => (
+                      <a
+                        href={link || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        key={provider.provider_id}
+                        className="provider-item"
+                        title={`Rent/Buy on ${provider.provider_name} (Opens verified JustWatch page)`}
+                      >
+                        <img
+                          src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
+                          alt={provider.provider_name}
+                          className="provider-logo"
+                        />
+                        <span className="provider-name">{provider.provider_name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* 3. Cast & Characters Section */}
+      {movie.credits?.cast && movie.credits.cast.length > 0 && (
+        <div className="cast-section">
+          <div className="cast-header-row">
+            <h3 className="section-heading">Cast & Characters</h3>
+            <span className="cast-count-badge">{movie.credits.cast.length} Cast Members</span>
+          </div>
+
+          <div className="cast-grid">
+            {(showAllCast ? movie.credits.cast : movie.credits.cast.slice(0, 12)).map((actor) => {
+              const photoUrl = actor.profile_path
+                ? `https://image.tmdb.org/t/p/w185${actor.profile_path}`
+                : "https://via.placeholder.com/185x278?text=No+Photo";
+
+              let roleBadge = "Cast";
+              let roleClass = "cameo";
+              if (actor.order < 3) {
+                roleBadge = "Lead Role";
+                roleClass = "lead";
+              } else if (actor.order < 12) {
+                roleBadge = "Supporting";
+                roleClass = "supporting";
+              }
+
+              return (
+                <NavLink
+                  to={`/person/${actor.id}`}
+                  key={actor.id}
+                  className="cast-card-link"
+                >
+                  <div className="cast-card">
+                    <div className="cast-photo-wrap">
+                      <img src={photoUrl} alt={actor.name} loading="lazy" />
+                      <span className={`cast-role-pill ${roleClass}`}>{roleBadge}</span>
+                    </div>
+                    <div className="cast-card-info">
+                      <h4 className="cast-name" title={actor.name}>{actor.name}</h4>
+                      <p className="cast-character" title={actor.character}>
+                        {actor.character || "Self"}
+                      </p>
+                    </div>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
+
+          {movie.credits.cast.length > 12 && (
+            <div style={{ textAlign: "center", marginTop: "2.5rem" }}>
+              <button
+                className="view-all-cast-btn"
+                onClick={() => setShowAllCast(!showAllCast)}
+              >
+                {showAllCast ? "Show Less Cast ↑" : `View All Cast (${movie.credits.cast.length}) ↓`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 4. Track & Organize Panel */}
       <div className="tracking-panel">
         <h3>Track progress</h3>
         {currentUser ? (

@@ -37,6 +37,65 @@ const normalizeProviderBrand = (name = "") => {
   return n;
 };
 
+export const getOfficialStreamingUrl = (providerName = "", mediaTitle = "", fallbackUrl = "") => {
+  if (!providerName) return fallbackUrl || "#";
+  const p = providerName.toLowerCase();
+  const q = encodeURIComponent(mediaTitle || "");
+
+  if (p.includes("hotstar") || p.includes("jiohotstar") || p.includes("disney+ hotstar")) {
+    return `https://www.hotstar.com/in/explore?search_query=${q}`;
+  }
+  if (p.includes("disney+") || p.includes("disney plus")) {
+    return `https://www.disneyplus.com/search?q=${q}`;
+  }
+  if (p.includes("netflix")) {
+    return `https://www.netflix.com/search?q=${q}`;
+  }
+  if (p.includes("prime video") || p.includes("amazon prime") || p.includes("amazon video")) {
+    return `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${q}`;
+  }
+  if (p.includes("crunchyroll")) {
+    return `https://www.crunchyroll.com/search?q=${q}`;
+  }
+  if (p.includes("apple tv") || p.includes("itunes")) {
+    return `https://tv.apple.com/search?term=${q}`;
+  }
+  if (p.includes("sonyliv") || p.includes("sony liv")) {
+    return `https://www.sonyliv.com/search/${q}`;
+  }
+  if (p.includes("zee5") || p.includes("zee 5")) {
+    return `https://www.zee5.com/search?q=${q}`;
+  }
+  if (p.includes("jiocinema") || p.includes("jio cinema")) {
+    return `https://www.jiocinema.com/search/${q}`;
+  }
+  if (p.includes("hulu")) {
+    return `https://www.hulu.com/search?q=${q}`;
+  }
+  if (p.includes("hbo") || p.includes("max")) {
+    return `https://www.max.com/search?q=${q}`;
+  }
+  if (p.includes("paramount")) {
+    return `https://www.paramountplus.com/search/?query=${q}`;
+  }
+  if (p.includes("peacock")) {
+    return `https://www.peacocktv.com/watch/search?q=${q}`;
+  }
+  if (p.includes("tubi")) {
+    return `https://tubitv.com/search/${q}`;
+  }
+  if (p.includes("youtube")) {
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent((mediaTitle || "") + " movie")}`;
+  }
+  if (p.includes("google play") || p.includes("google tv")) {
+    return `https://play.google.com/store/search?q=${q}&c=movies`;
+  }
+  if (p.includes("vudu") || p.includes("fandango")) {
+    return `https://www.vudu.com/content/movies/search?searchString=${q}`;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent(`watch ${mediaTitle || ""} on ${providerName}`)}`;
+};
+
 const filterUniqueProviders = (list = []) => {
   if (!Array.isArray(list)) return [];
   const seenIds = new Set();
@@ -237,9 +296,14 @@ const SingleMovie = () => {
 
   const handleStatusChangeInForm = (newStatus) => {
     setStatus(newStatus);
-    if (newStatus === "Completed" && isTV) {
-      setEpisodesWatched(String(totalEpisodes));
-      setEpisodesError("");
+    if (isTV) {
+      if (newStatus === "Completed") {
+        setEpisodesWatched(String(totalEpisodes));
+        setEpisodesError("");
+      } else if (newStatus === "Plan to Watch") {
+        setEpisodesWatched("0");
+        setEpisodesError("");
+      }
     }
   };
 
@@ -495,12 +559,12 @@ const SingleMovie = () => {
                   <div className="provider-chips-row">
                     {flatrate.map((provider) => (
                       <a
-                        href={justWatchLink || "#"}
+                        href={getOfficialStreamingUrl(provider.cleanName, movie.title || movie.name, justWatchLink)}
                         target="_blank"
                         rel="noopener noreferrer"
                         key={`flatrate-${provider.provider_id}`}
                         className="provider-chip"
-                        title={`Stream on ${provider.cleanName} (Opens verified JustWatch page)`}
+                        title={`Stream "${movie.title || movie.name}" on ${provider.cleanName} (Official)`}
                       >
                         <img
                           src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
@@ -520,12 +584,12 @@ const SingleMovie = () => {
                   <div className="provider-chips-row">
                     {rent.map((provider) => (
                       <a
-                        href={justWatchLink || "#"}
+                        href={getOfficialStreamingUrl(provider.cleanName, movie.title || movie.name, justWatchLink)}
                         target="_blank"
                         rel="noopener noreferrer"
                         key={`rent-${provider.provider_id}`}
                         className="provider-chip"
-                        title={`Rent on ${provider.cleanName} (Opens verified JustWatch page)`}
+                        title={`Rent "${movie.title || movie.name}" on ${provider.cleanName} (Official)`}
                       >
                         <img
                           src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}
@@ -545,12 +609,12 @@ const SingleMovie = () => {
                   <div className="provider-chips-row">
                     {buy.map((provider) => (
                       <a
-                        href={justWatchLink || "#"}
+                        href={getOfficialStreamingUrl(provider.cleanName, movie.title || movie.name, justWatchLink)}
                         target="_blank"
                         rel="noopener noreferrer"
                         key={`buy-${provider.provider_id}`}
                         className="provider-chip"
-                        title={`Buy on ${provider.cleanName} (Opens verified JustWatch page)`}
+                        title={`Buy "${movie.title || movie.name}" on ${provider.cleanName} (Official)`}
                       >
                         <img
                           src={`https://image.tmdb.org/t/p/original${provider.logo_path}`}

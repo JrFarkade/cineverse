@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useGlobalContext } from "./context";
 import { NavLink } from "react-router-dom";
 
+const API_KEY = process.env.REACT_APP_TMDB_KEY || "96f53db154f4df124746c30c9823648c";
+const API_URL = "https://api.tmdb.org/3";
+
 const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
   const { currentUser, watchlist, addToWatchlist, updateWatchlistProgress, removeFromWatchlist } = useGlobalContext();
 
@@ -9,24 +12,73 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
   const [personalRating, setPersonalRating] = useState(0);
   const [rewatchCount, setRewatchCount] = useState(0);
   const [episodesWatched, setEpisodesWatched] = useState(0);
+  const [totalEpisodes, setTotalEpisodes] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const mediaId = mediaItem ? String(mediaItem.id || mediaItem.mediaId) : null;
   const existingItem = watchlist.find((item) => String(item.mediaId) === mediaId);
 
+  const concreteType = mediaItem
+    ? (mediaItem.media_type || mediaItem.type || (mediaItem.title ? "movie" : "tv"))
+    : "movie";
+  const isTV = concreteType === "tv" || concreteType === "kdrama" || (concreteType === "anime" && (mediaItem?.originalType === "tv" || !mediaItem?.title));
+
   useEffect(() => {
+    if (!isOpen || !mediaItem) return;
+
+    const initialTotal = mediaItem.number_of_episodes || existingItem?.totalEpisodes || 0;
+    setTotalEpisodes(initialTotal);
+
     if (existingItem) {
-      setStatus(existingItem.status || "Plan to Watch");
+      const curStatus = existingItem.status || "Plan to Watch";
+      setStatus(curStatus);
       setPersonalRating(existingItem.personalRating || 0);
       setRewatchCount(existingItem.rewatchCount || 0);
-      setEpisodesWatched(existingItem.episodesWatched || 0);
+
+      if (curStatus === "Completed" && (!existingItem.episodesWatched || existingItem.episodesWatched === 0) && initialTotal > 0) {
+        setEpisodesWatched(initialTotal);
+      } else {
+        setEpisodesWatched(existingItem.episodesWatched || 0);
+      }
     } else {
       setStatus("Plan to Watch");
       setPersonalRating(0);
       setRewatchCount(0);
       setEpisodesWatched(0);
     }
-  }, [existingItem, mediaId, isOpen]);
+  }, [existingItem, mediaItem, isOpen]);
+
+  // Fetch TMDB TV details to get official number_of_episodes if not readily available
+  useEffect(() => {
+    if (!isOpen || !mediaId || !isTV) return;
+
+    let isMounted = true;
+    const fetchTvEpisodes = async () => {
+      try {
+        const res = await fetch(`${API_URL}/tv/${mediaId}?api_key=${API_KEY}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (isMounted && data && typeof data.number_of_episodes === "number" && data.number_of_episodes > 0) {
+          const total = data.number_of_episodes;
+          setTotalEpisodes(total);
+          setStatus((curStatus) => {
+            if (curStatus === "Completed") {
+              setEpisodesWatched(total);
+            }
+            return curStatus;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch TV episode count:", err);
+      }
+    };
+
+    fetchTvEpisodes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, mediaId, isTV]);
 
   if (!isOpen || !mediaItem) return null;
 
@@ -35,13 +87,28 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
     ? `https://image.tmdb.org/t/p/w200${mediaItem.poster_path}`
     : "https://via.placeholder.com/150x225?text=No+Poster";
 
-  const concreteType = mediaItem.media_type || (mediaItem.title ? "movie" : "tv");
-  const isTV = concreteType === "tv";
+  const handleStatusChange = (newStatus) => {
+    setStatus(newStatus);
+    if (isTV) {
+      if (newStatus === "Completed") {
+        setEpisodesWatched(totalEpisodes > 0 ? totalEpisodes : 0);
+      } else if (newStatus === "Plan to Watch") {
+        setEpisodesWatched(0);
+      }
+      // For "Watching", "On Hold", "Dropped": preserve current episodes watched
+    }
+  };
 
   const handleSave = async (e) => {
     e.preventDefault();
     if (!currentUser) return;
     setIsSubmitting(true);
+
+    const effectiveTotal = isTV ? (totalEpisodes || mediaItem.number_of_episodes || existingItem?.totalEpisodes || 1) : 1;
+    let finalEpisodesWatched = isTV ? Number(episodesWatched) : 0;
+    if (isTV && status === "Completed" && effectiveTotal > 0 && finalEpisodesWatched === 0) {
+      finalEpisodesWatched = effectiveTotal;
+    }
 
     try {
       if (existingItem) {
@@ -49,7 +116,8 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
           status,
           personalRating: Number(personalRating),
           rewatchCount: Number(rewatchCount),
-          episodesWatched: Number(episodesWatched),
+          episodesWatched: finalEpisodesWatched,
+          totalEpisodes: effectiveTotal,
         });
       } else {
         await addToWatchlist({
@@ -60,8 +128,8 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
           status,
           personalRating: Number(personalRating),
           rewatchCount: Number(rewatchCount),
-          episodesWatched: Number(episodesWatched),
-          totalEpisodes: mediaItem.number_of_episodes || (isTV ? 12 : 1),
+          episodesWatched: finalEpisodesWatched,
+          totalEpisodes: effectiveTotal,
         });
       }
       onClose();
@@ -114,7 +182,7 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
           <form onSubmit={handleSave} className="quick-modal-form">
             <div className="quick-modal-field">
               <label>Status</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}>
+              <select value={status} onChange={(e) => handleStatusChange(e.target.value)}>
                 <option value="Watching">Currently Watching</option>
                 <option value="Completed">Completed</option>
                 <option value="Plan to Watch">Plan to Watch</option>
@@ -136,16 +204,25 @@ const QuickTrackModal = ({ isOpen, onClose, mediaItem }) => {
               </select>
             </div>
 
-            <div className="quick-modal-row-fields">
+            <div className={isTV ? "quick-modal-row-fields" : "quick-modal-field"}>
               {isTV && (
                 <div className="quick-modal-field">
-                  <label>Episodes</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={episodesWatched}
-                    onChange={(e) => setEpisodesWatched(Math.max(0, parseInt(e.target.value) || 0))}
-                  />
+                  <label>Episodes Watched</label>
+                  <div className="quick-modal-episode-row">
+                    <input
+                      type="number"
+                      min="0"
+                      max={totalEpisodes > 0 ? totalEpisodes : undefined}
+                      value={episodesWatched}
+                      onChange={(e) => {
+                        const val = Math.max(0, parseInt(e.target.value) || 0);
+                        setEpisodesWatched(totalEpisodes > 0 ? Math.min(val, totalEpisodes) : val);
+                      }}
+                    />
+                    <span className="quick-modal-ep-total">
+                      / {totalEpisodes > 0 ? `${totalEpisodes} eps` : "..."}
+                    </span>
+                  </div>
                 </div>
               )}
 

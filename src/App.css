@@ -2889,6 +2889,39 @@ a:hover img {
   gap: 1.2rem;
 }
 
+.quick-modal-episode-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.8rem;
+  padding: 0 0.9rem;
+}
+
+.quick-modal-episode-row:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.quick-modal-episode-row input {
+  border: none !important;
+  padding: 0.8rem 0 !important;
+  width: 100%;
+  font-size: 1.35rem;
+  outline: none;
+  background: transparent;
+  box-shadow: none !important;
+}
+
+.quick-modal-ep-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #64748b;
+  white-space: nowrap;
+  user-select: none;
+}
+
 .quick-modal-actions {
   display: flex;
   justify-content: flex-end;
